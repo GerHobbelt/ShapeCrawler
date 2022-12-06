@@ -21,6 +21,7 @@ internal class ShapeFill : IShapeFill
     internal ShapeFill(Shape shape)
     {
         this.shape = shape;
+        this.isDirty = true;
     }
 
     public string? HexSolidColor => this.GetHexSolidColor();
@@ -64,20 +65,9 @@ internal class ShapeFill : IShapeFill
         }
         
         var pShape = (P.Shape)this.shape.PShapeTreesChild;
-        this.aSolidFill = pShape.ShapeProperties!.GetFirstChild<A.SolidFill>();
-        if (this.aSolidFill is not null)
-        {
-            foreach (var element in this.aSolidFill.Elements())
-            {
-                element.Remove();
-            }
-        }
-        else
-        {
-            var aRgbColorModelHex = new A.RgbColorModelHex();
-            this.aSolidFill = new A.SolidFill();
-            
-        }
+        pShape.ShapeProperties!.AddASolidFill(hex);
+
+        this.isDirty = true;
     }
 
     private SCFillType GetFillType()

@@ -61,7 +61,6 @@ internal class SCParagraph : IParagraph
 
     public void AddPortion(string text)
     {
-        this.ThrowIfRemoved();
         if (text == string.Empty)
         {
             return;
@@ -97,7 +96,7 @@ internal class SCParagraph : IParagraph
 
         for (var i = 1; i < textLines.Length; i++)
         {
-            AddBreak(ref lastARunOrABreak);
+            AddBreak(ref lastARunOrABreak!);
             if (textLines[i] != string.Empty)
             {
                 AddText(ref lastARunOrABreak, aRun, textLines[i], this.AParagraph);
@@ -105,16 +104,6 @@ internal class SCParagraph : IParagraph
         }
 
         this.portions.Reset();
-    }
-
-    internal void ThrowIfRemoved()
-    {
-        if (this.IsRemoved)
-        {
-            throw new ElementIsRemovedException("Paragraph was removed.");
-        }
-
-        this.TextFrame.ThrowIfRemoved();
     }
 
     #region Private Methods
@@ -164,8 +153,6 @@ internal class SCParagraph : IParagraph
 
     private void SetText(string text)
     {
-        this.ThrowIfRemoved();
-
         if (this.portions.Value.Count == 0)
         {
             this.AddPortion(" ");
