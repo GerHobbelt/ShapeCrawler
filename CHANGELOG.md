@@ -1,7 +1,9 @@
 # Changelog
 
 ## Version 0.37.0 - Unreleased
-- Added `IParagraph.ReplaceText(string oldValue, string newValue)` method to find and replace specified paragraph's text [#358](https://github.com/ShapeCrawler/ShapeCrawler/issues/358)
+- Added `IPicture.SvgContent` property to read SVG graphic content [#344](https://github.com/ShapeCrawler/ShapeCrawler/issues/355)
+- Added `ITextFrame.LeftMargin`, `ITextFrame.RightMargin`, `ITextFrame.TopMargin` and `ITextFrame.BottomMargin` properties to get margins of text box [#375](https://github.com/ShapeCrawler/ShapeCrawler/issues/375)
+
 
 ## Version 0.36.0 - 2022-10-31
 - Added `IShapeFill.SetHexSolidColor(string hex)` to set a solid color as the shape fill [#267](https://github.com/ShapeCrawler/ShapeCrawler/issues/267)
