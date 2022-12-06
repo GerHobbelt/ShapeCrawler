@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Validation;
 using FluentAssertions;
 using ShapeCrawler.Shapes;
 using ShapeCrawler.Tests.Helpers;
@@ -63,6 +65,25 @@ public class ShapeFillTests : ShapeCrawlerTest, IClassFixture<PresentationFixtur
         // Act
         shapeFill.SetHexSolidColor("32a852");
 
+        // Assert
+        shapeFill.HexSolidColor.Should().Be("32a852");
+        var errors = Validate(shape.SlideObject.Presentation);
+        errors.Should().BeEmpty();
+    }
+    
+    [Theory]
+    [SlideShapeData("009_table.pptx", slideNumber: 2, shapeName: "AutoShape 2")]
+    public void SetHexSolidColor_sets_solid_color_After_picture(IShape shape)
+    {
+        // Arrange
+        var autoShape = (IAutoShape)shape;
+        var shapeFill = autoShape.Fill;
+        var imageStream = GetTestStream("test-image-1.png");
+
+        // Act
+        shapeFill.SetPicture(imageStream);
+        shapeFill.SetHexSolidColor("32a852");
+        
         // Assert
         shapeFill.HexSolidColor.Should().Be("32a852");
     }

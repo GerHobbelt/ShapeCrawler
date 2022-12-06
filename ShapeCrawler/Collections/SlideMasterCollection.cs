@@ -28,7 +28,7 @@ namespace ShapeCrawler.Collections
 
         internal static SlideMasterCollection Create(SCPresentation presentation)
         {
-            IEnumerable<SlideMasterPart> slideMasterParts = presentation.SDKPresentation.PresentationPart!.SlideMasterParts;
+            IEnumerable<SlideMasterPart> slideMasterParts = presentation.SDKPresentationInternal.PresentationPart!.SlideMasterParts;
             var slideMasters = new List<ISlideMaster>(slideMasterParts.Count());
             foreach (SlideMasterPart slideMasterPart in slideMasterParts)
             {
@@ -42,7 +42,7 @@ namespace ShapeCrawler.Collections
         {
             SlideLayoutPart inputSlideLayoutPart = slide.SDKSlidePart.SlideLayoutPart!;
             IEnumerable<SCSlideLayout> allLayouts = this.slideMasters.SelectMany(sm => sm.SlideLayouts).OfType<SCSlideLayout>();
-            
+
             return allLayouts.First(sl => sl.SlideLayoutPart.Uri == inputSlideLayoutPart.Uri);
         }
     }

@@ -62,7 +62,7 @@ internal class SCSlide : SlideObject, ISlide
     public IPresentation Presentation { get; }
 
     public SlidePart SDKSlidePart { get; }
-    
+
     public SCPresentation PresentationInternal { get; } // TODO: make internal
 
     internal SCSlideLayout SlideLayoutInternal => (SCSlideLayout)this.SlideLayout;
@@ -142,7 +142,7 @@ internal class SCSlide : SlideObject, ISlide
 
     private int GetNumber()
     {
-        var presentationPart = this.PresentationInternal.SDKPresentation.PresentationPart!;
+        var presentationPart = this.PresentationInternal.SDKPresentationInternal.PresentationPart!;
         var currentSlidePartId = presentationPart.GetIdOfPart(this.SDKSlidePart);
         var slideIdList =
             presentationPart.Presentation.SlideIdList!.ChildElements.OfType<SlideId>().ToList();
@@ -167,7 +167,7 @@ internal class SCSlide : SlideObject, ISlide
             throw new ArgumentOutOfRangeException(nameof(to));
         }
 
-        var presentationPart = this.PresentationInternal.SDKPresentation.PresentationPart!;
+        var presentationPart = this.PresentationInternal.SDKPresentationInternal.PresentationPart!;
 
         var presentation = presentationPart.Presentation;
         var slideIdList = presentation.SlideIdList!;
