@@ -234,17 +234,18 @@ namespace ShapeCrawler.Tests
             id.Should().Be(9);
         }
 
-        [Fact]
-        public void Y_Setter_updates_y_coordinate()
+        [Theory]
+        [SlideShapeData("001.pptx", 1, "TextBox 3")]
+        [SlideShapeData("001.pptx", 1, "Head 1")]
+        public void Y_Setter_sets_y_coordinate(IShape shape)
         {
-            // Arrange
-            var autoShape = GetAutoShape("001.pptx", 1, 4);
-
             // Act
-            autoShape.Y = 100;
+            shape.Y = 100;
 
             // Assert
-            autoShape.Y.Should().Be(100);
+            shape.Y.Should().Be(100);
+            var errors = PptxValidator.Validate(shape.SlideObject.Presentation);
+            errors.Should().BeEmpty();
         }
 
         [Theory]
@@ -266,6 +267,8 @@ namespace ShapeCrawler.Tests
             pres = SCPresentation.Open(stream);
             shape = pres.Slides[slideIndex].Shapes.GetByName<IShape>(shapeName);
             shape.X.Should().Be(400);
+            var errors = PptxValidator.Validate(shape.SlideObject.Presentation);
+            errors.Should().BeEmpty();
         }
         
         [Fact]
@@ -284,8 +287,9 @@ namespace ShapeCrawler.Tests
             pres.SaveAs(stream);
             pres = SCPresentation.Open(stream);
             shape = pres.Slides.First().Shapes.First(sp => sp.Id == 3);
-
             shape.Width.Should().Be(widthPixels);
+            var errors = PptxValidator.Validate(shape.SlideObject.Presentation);
+            errors.Should().BeEmpty();
         }
 
         [Fact]
