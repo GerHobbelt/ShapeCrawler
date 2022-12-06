@@ -36,6 +36,11 @@ public interface IParagraph
     SCTextAlignment Alignment { get; set; }
 
     /// <summary>
+    ///     Gets paragraph's indent level.
+    /// </summary>
+    int IndentLevel { get; }
+
+    /// <summary>
     ///     Adds new text portion in paragraph.
     /// </summary>
     void AddPortion(string text);
@@ -56,11 +61,13 @@ internal class SCParagraph : IParagraph
     {
         this.AParagraph = aParagraph;
         this.AParagraph.ParagraphProperties ??= new A.ParagraphProperties();
-        this.Level = GetInnerLevel(aParagraph);
+        this.Level = this.GetIndentLevel();
         this.bullet = new Lazy<SCBullet>(this.GetBullet);
-        this.TextFrame = textBox;
+        this.ParentTextFrame = textBox;
         this.portions = new ResettableLazy<PortionCollection>(this.GetPortions);
     }
+
+    internal event Action? TextChanged;
 
     public bool IsRemoved { get; set; }
 
@@ -80,7 +87,9 @@ internal class SCParagraph : IParagraph
         set => this.SetAlignment(value);
     }
 
-    internal TextFrame TextFrame { get; }
+    public int IndentLevel => this.GetIndentLevel();
+
+    internal TextFrame ParentTextFrame { get; }
 
     internal A.Paragraph AParagraph { get; }
 
@@ -161,7 +170,10 @@ internal class SCParagraph : IParagraph
         lastElement = lastElement.InsertAfterSelf(new A.Break());
     }
 
-    private static void AddText(ref OpenXmlElement? lastElement, OpenXmlElement aTextParent, string text,
+    private static void AddText(
+        ref OpenXmlElement? lastElement,
+        OpenXmlElement aTextParent,
+        string text,
         A.Paragraph aParagraph)
     {
         var newARun = (A.Run)aTextParent.CloneNode(true);
@@ -174,15 +186,6 @@ internal class SCParagraph : IParagraph
         {
             lastElement = lastElement.InsertAfterSelf(newARun);
         }
-    }
-
-    private static int GetInnerLevel(A.Paragraph aParagraph)
-    {
-        // XML-paragraph enumeration started from zero. Null is also zero
-        Int32Value xmlParagraphLvl = aParagraph.ParagraphProperties?.Level ?? 0;
-        int paragraphLvl = ++xmlParagraphLvl;
-
-        return paragraphLvl;
     }
 
     private SCBullet GetBullet()
@@ -198,6 +201,17 @@ internal class SCParagraph : IParagraph
         }
 
         return this.Portions.Select(portion => portion.Text).Aggregate((result, next) => result + next);
+    }
+
+    private int GetIndentLevel()
+    {
+        var level = this.AParagraph.ParagraphProperties!.Level;
+        if (level is null)
+        {
+            return 1; // it is default indent level
+        }
+
+        return level + 1;
     }
 
     private void SetText(string text)
@@ -221,6 +235,8 @@ internal class SCParagraph : IParagraph
         {
             basePortion.Text = text;
         }
+
+        this.TextChanged?.Invoke();
     }
 
     private PortionCollection GetPortions()
@@ -262,7 +278,7 @@ internal class SCParagraph : IParagraph
             return this.alignment.Value;
         }
 
-        var shape = this.TextFrame.TextFrameContainer.Shape;
+        var shape = this.ParentTextFrame.TextFrameContainer.Shape;
         var placeholder = shape.Placeholder;
 
         var aTextAlignmentType = this.AParagraph.ParagraphProperties?.Alignment!;
