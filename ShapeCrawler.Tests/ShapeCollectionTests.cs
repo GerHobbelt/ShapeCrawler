@@ -222,7 +222,7 @@ public class ShapeCollectionTests : ShapeCrawlerTest, IClassFixture<Presentation
         var shapes = pres.Slides[0].Shapes;
         
         // Act
-        var table = shapes.AddTable(xPx: 50, yPx: 60, columns: 3, rows: 2);
+        var table = shapes.AddTable(x: 50, y: 60, columns: 3, rows: 2);
 
         // Assert
         table.Columns.Should().HaveCount(3);
@@ -230,6 +230,25 @@ public class ShapeCollectionTests : ShapeCrawlerTest, IClassFixture<Presentation
         table.Id.Should().Be(1);
         table.Name.Should().Be("Table 1");
         table.Columns[0].Width.Should().Be(284);
+        var errors = PptxValidator.Validate(pres);
+        errors.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Remove_removes_shape()
+    {
+        // Arrange
+        var pptx = GetTestStream("autoshape-case015.pptx");
+        var pres = SCPresentation.Open(pptx);
+        var shapeCollection = pres.Slides[0].Shapes;
+        var shape = shapeCollection.GetByName("TextBox 3")!;
+
+        // Act
+        shapeCollection.Remove(shape);
+
+        // Assert
+        shape = shapeCollection.GetByName("TextBox 3");
+        shape.Should().BeNull();
         var errors = PptxValidator.Validate(pres);
         errors.Should().BeEmpty();
     }
