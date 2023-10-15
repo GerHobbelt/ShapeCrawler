@@ -120,6 +120,8 @@ internal abstract class SCShapeFill : IShapeFill
             {
                 // TODO: get hex color from scheme
                 var schemeColor = this.aSolidFill.SchemeColor;
+                var hex = HexParser.FromSolidFill(aSolidFill, (SCSlideMaster)slideObject.SlideMaster);
+                this.hexSolidColor = hex.Item2;
             }
 
             this.fillType = SCFillType.Solid;
