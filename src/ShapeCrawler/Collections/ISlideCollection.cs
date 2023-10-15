@@ -103,7 +103,7 @@ internal sealed class SCSlideCollection : ISlideCollection
 
     public ISlide AddEmptySlide(SCSlideLayoutType layoutType)
     {
-        var masters = (SCSlideMasterCollection)presentation.SlideMasters;
+        var masters = (SCSlideMasterCollection)this.presentation.SlideMasters;
         var layout = masters.SelectMany(m => m.SlideLayouts).First(l => l.Type == layoutType);
 
         return this.AddEmptySlide(layout);
@@ -189,6 +189,7 @@ internal sealed class SCSlideCollection : ISlideCollection
         var tempStream = new MemoryStream();
         if (sourceSlideInternal.Presentation == this.presentation)
         {
+            this.presentation.ChartWorkbooks.ForEach(c => c.Close());
             sourcePresDoc = (PresentationDocument)this.presentation.SDKPresentationInternal.Clone(tempStream);
         }
         else
