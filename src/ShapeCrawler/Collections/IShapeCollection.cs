@@ -72,12 +72,16 @@ public interface IShapeCollection : IReadOnlyList<IShape>
     ///     Adds a new Rounded Rectangle shape. 
     /// </summary>
     IRoundedRectangle AddRoundedRectangle(int x, int y, int w, int h);
+
+#if DEBUG
     
     /// <summary>
     ///     Adds a line from XML.
     /// </summary>
     /// <param name="xml">Content of p:cxnSp Open XML element.</param>
     ILine AddLine(string xml);
+
+#endif
     
     /// <summary>
     ///     Adds a new line.
@@ -404,9 +408,15 @@ internal sealed class ShapeCollection : IShapeCollection
     {
         var deltaX = endPointX - startPointX;
         var deltaY = endPointY - startPointY;
-        var distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
-        
-        var newPConnectionShape = this.CreatePConnectionShape(startPointX, startPointY, (int)distance);
+        var cx = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        var cy = endPointY;
+        if (deltaY == 0)
+        {
+            cy = 0;
+        }
+            
+        var newPConnectionShape = this.CreatePConnectionShape(startPointX, startPointY, (int)cx, cy);
 
         var newShape = new SCLine(newPConnectionShape, this.ParentSlideStructure, this);
         newShape.Outline.Color = "000000";
@@ -606,16 +616,18 @@ internal sealed class ShapeCollection : IShapeCollection
         return pShape;
     }
     
-    private P.ConnectionShape CreatePConnectionShape(int x, int y, int width)
+    private P.ConnectionShape CreatePConnectionShape(int xPx, int yPx, int cxPx, int cyPx)
     {
         var idAndName = this.GenerateIdAndName();
         var adjustValueList = new A.AdjustValueList();
         var presetGeometry = new A.PresetGeometry(adjustValueList) { Preset = A.ShapeTypeValues.Line };
         var shapeProperties = new P.ShapeProperties();
-        var xEmu = UnitConverter.HorizontalPixelToEmu(x);
-        var yEmu = UnitConverter.VerticalPixelToEmu(y);
-        var widthEmu = UnitConverter.HorizontalPixelToEmu(width);
-        shapeProperties.AddAXfrm(xEmu, yEmu, widthEmu, 0);
+        var xEmu = UnitConverter.HorizontalPixelToEmu(xPx);
+        var yEmu = UnitConverter.VerticalPixelToEmu(yPx);
+        var cxEmu = UnitConverter.HorizontalPixelToEmu(cxPx);
+        var cyEmu = UnitConverter.VerticalPixelToEmu(cyPx);
+        var aXfrm = shapeProperties.AddAXfrm(xEmu, yEmu, cxEmu, cyEmu);
+        aXfrm.VerticalFlip = new BooleanValue(cyPx < yPx);
         shapeProperties.Append(presetGeometry);
 
         var pConnectionShape = new P.ConnectionShape(
