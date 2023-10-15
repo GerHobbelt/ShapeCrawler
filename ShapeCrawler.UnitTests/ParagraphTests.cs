@@ -6,14 +6,11 @@ using System.IO;
 using System.Linq;
 using FluentAssertions;
 using ShapeCrawler.Shapes;
+using ShapeCrawler.Tests.Shared;
 using ShapeCrawler.UnitTests.Helpers;
 using ShapeCrawler.UnitTests.Helpers.Attributes;
 using ShapeCrawler.UnitTests.Helpers;
 using Xunit;
-
-// ReSharper disable All
-// ReSharper disable TooManyChainedReferences
-// ReSharper disable TooManyDeclarations
 
 namespace ShapeCrawler.UnitTests
 {
@@ -91,12 +88,10 @@ namespace ShapeCrawler.UnitTests
 
         public static IEnumerable<object[]> TestCasesAlignmentGetter()
         {
-            var pptxStream1 = GetTestStream("001.pptx");
-            var pres1 = SCPresentation.Open(pptxStream1);
-            var autoShape1 = SCPresentation.Open(GetTestStream("001.pptx")).Slides[0].Shapes.GetByName<IAutoShape>("TextBox 3");
+            var autoShape1 = SCPresentation.Open(Assets.GetStream("001.pptx")).Slides[0].Shapes.GetByName<IAutoShape>("TextBox 3");
             yield return new object[] { autoShape1, SCTextAlignment.Center };
 
-            var pptxStream2 = GetTestStream("001.pptx");
+            var pptxStream2 = Assets.GetStream("001.pptx");
             var pres2 = SCPresentation.Open(pptxStream2);
             var autoShape2 = pres2.Slides[0].Shapes.GetByName<IAutoShape>("Head 1");
             yield return new object[] { autoShape2, SCTextAlignment.Center };
@@ -145,7 +140,7 @@ namespace ShapeCrawler.UnitTests
         public void Paragraph_Bullet_Type_Getter_returns_None_value_When_paragraph_doesnt_have_bullet()
         {
             // Arrange
-            var pptx = GetTestStream("001.pptx");
+            var pptx = Assets.GetStream("001.pptx");
             var pres = SCPresentation.Open(pptx);
             var autoShape = pres.Slides[0].Shapes.GetById<IAutoShape>(2);
             var bullet = autoShape.TextFrame.Paragraphs[0].Bullet;
@@ -280,10 +275,8 @@ namespace ShapeCrawler.UnitTests
         public void Paragraph_Text_Getter_returns_paragraph_text()
         {
             // Arrange
-            ITextFrame textBox1 = ((IAutoShape)SCPresentation.Open(GetTestStream("008.pptx")).Slides[0].Shapes.First(sp => sp.Id == 37)).TextFrame;
-            ITextFrame textBox2 = ((ITable)SCPresentation.Open(GetTestStream("009_table.pptx")).Slides[2].Shapes.First(sp => sp.Id == 3)).Rows[0].Cells[0]
-                .TextFrame;
-            ITextFrame textBox3 = ((ITable)SCPresentation.Open(GetTestStream("009_table.pptx")).Slides[2].Shapes.First(sp => sp.Id == 3)).Rows[0].Cells[0]
+            var textBox1 = ((IAutoShape)SCPresentation.Open(GetTestStream("008.pptx")).Slides[0].Shapes.First(sp => sp.Id == 37)).TextFrame;
+            var textBox2 = ((ITable)SCPresentation.Open(GetTestStream("009_table.pptx")).Slides[2].Shapes.First(sp => sp.Id == 3)).Rows[0].Cells[0]
                 .TextFrame;
 
             // Act
