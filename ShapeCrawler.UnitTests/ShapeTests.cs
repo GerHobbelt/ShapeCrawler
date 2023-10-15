@@ -1,6 +1,4 @@
-﻿#if DEBUG
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FluentAssertions;
@@ -9,7 +7,6 @@ using ShapeCrawler.Shapes;
 using ShapeCrawler.UnitTests.Helpers;
 using ShapeCrawler.UnitTests.Helpers.Attributes;
 using Xunit;
-using TestHelper = ShapeCrawler.Tests.Shared.TestHelper;
 
 namespace ShapeCrawler.UnitTests
 {
@@ -66,23 +63,6 @@ namespace ShapeCrawler.UnitTests
             mime.Should().Be("audio/mpeg");
         }
 
-        [Fact(Skip = "On Hold ")]
-        public void Duplicate_duplicates_AutoShape()
-        {
-            // Arrange
-            var pptx = TestHelper.GetStream("autoshape-case015.pptx");
-            var pres = SCPresentation.Open(pptx);
-            var shape = pres.Slides[0].Shapes.GetByName<IAutoShape>("TextBox 6");
-
-            // Act
-            IAutoShape shapeCopy = shape.Duplicate();
-
-            // Assert
-            shapeCopy.X.Should().Be(shape.X);
-            shapeCopy.Width.Should().Be(shape.Width);
-            shapeCopy.TextFrame.Text.Should().Be(shapeCopy.TextFrame.Text);
-        }
-        
         [Fact]
         public void VideoShape_BinaryData_returns_video_bytes()
         {
@@ -471,5 +451,3 @@ namespace ShapeCrawler.UnitTests
         }
     }
 }
-
-#endif
