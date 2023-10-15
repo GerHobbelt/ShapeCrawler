@@ -1,0 +1,28 @@
+name: CD - Push NuGet package
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.401
+      - name: Restore NuGet packages
+        run: dotnet restore
+      - name: Build solution
+        run: dotnet build --configuration Release
+      - name: Pack NuGet package
+        run: dotnet pack --configuration Release
+      - name: Push NuGet package
+        run: |
+          dotnet nuget push -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json "ShapeCrawler\bin\Release\*.nupkg"
