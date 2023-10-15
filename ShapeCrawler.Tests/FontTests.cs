@@ -41,7 +41,7 @@ public class FontTests : ShapeCrawlerTest, IClassFixture<PresentationFixture>
     }
 
     [Fact]
-    public void Name_GetterReturnsCalibriLightAsFontName_WhenFontNameIsCalibriLight()
+    public void Name_Getter_returns_Calibri_Light()
     {
         // Arrange
         ITextFrame textBox = ((IAutoShape)_fixture.Pre001.Slides[4].Shapes.First(sp => sp.Id == 5)).TextFrame;
@@ -85,60 +85,49 @@ public class FontTests : ShapeCrawlerTest, IClassFixture<PresentationFixture>
         action.Should().Throw<Exception>();
     }
 
-    [Fact]
-    public void Size_Getter_returns_font_size()
+    [Theory]
+    [MasterShapeData("001.pptx", "Freeform: Shape 7", 18)]
+    [SlideShapeData("020.pptx", 1, 3, 18)]
+    [SlideShapeData("015.pptx", 2, 61, 18)]
+    [SlideShapeData("009_table.pptx", 3, 2, 18)]
+    [SlideShapeData("009_table.pptx", 4, 2, 44)]
+    [SlideShapeData("009_table.pptx", 4, 3, 32)]
+    [SlideShapeData("019.pptx", 1, 4103, 18)]
+    [SlideShapeData("019.pptx", 1, 2, 12)]
+    [SlideShapeData("014.pptx", 2, 5, 21)]
+    [SlideShapeData("012_title-placeholder.pptx", 1, "Title 1", 20)]
+    [SlideShapeData("010.pptx", 1, 2, 15)]
+    [SlideShapeData("014.pptx", 4, 5, 12)]
+    [SlideShapeData("014.pptx", 5, 4, 12)]
+    [SlideShapeData("014.pptx", 6, 52, 27)]
+    [SlideShapeData("autoshape-case016.pptx", 1, "Text Placeholder 1", 28)]
+    public void Size_Getter_returns_font_size(IShape shape, int expectedSize)
     {
         // Arrange
-        var portionCase1 = ((IAutoShape)_fixture.Pre020.Slides[0].Shapes.First(sp => sp.Id == 3)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase2 = ((IAutoShape)_fixture.Pre015.Slides[0].Shapes.First(sp => sp.Id == 5)).TextFrame
-            .Paragraphs[0].Portions[2];
-        var portionCase3 = ((IAutoShape)_fixture.Pre015.Slides[1].Shapes.First(sp => sp.Id == 61)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase4 = ((IAutoShape)_fixture.Pre009.Slides[2].Shapes.First(sp => sp.Id == 2)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase5 = ((IAutoShape)_fixture.Pre009.Slides[2].Shapes.First(sp => sp.Id == 2)).TextFrame
-            .Paragraphs[0].Portions[1];
-        var portionCase6 = ((IAutoShape)_fixture.Pre009.Slides[3].Shapes.First(sp => sp.Id == 2)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase7 = ((IAutoShape)_fixture.Pre009.Slides[3].Shapes.First(sp => sp.Id == 3)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase8 = ((IAutoShape)_fixture.Pre019.Slides[0].Shapes.First(sp => sp.Id == 4103)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase9 = ((IAutoShape)_fixture.Pre019.Slides[0].Shapes.First(sp => sp.Id == 2)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase10 = ((IAutoShape)_fixture.Pre014.Slides[1].Shapes.First(sp => sp.Id == 5)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase11 = _fixture.Pre012.Slides[0].Shapes.GetByName<IAutoShape>("Title 1").TextFrame!
-            .Paragraphs[0].Portions[0];
-        var portionCase12 = ((IAutoShape)_fixture.Pre010.Slides[0].Shapes.First(sp => sp.Id == 2)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase13 = ((IAutoShape)_fixture.Pre014.Slides[3].Shapes.First(sp => sp.Id == 5)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase14 = ((IAutoShape)_fixture.Pre014.Slides[4].Shapes.First(sp => sp.Id == 4)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase15 = ((IAutoShape)_fixture.Pre014.Slides[5].Shapes.First(sp => sp.Id == 52)).TextFrame
-            .Paragraphs[0].Portions[0];
-        var portionCase16 = ((IAutoShape)_fixture.Pre001.SlideMasters[0].Shapes.First(sp => sp.Id == 8)).TextFrame
-            .Paragraphs[0].Portions[0];
+        var autoShape = (IAutoShape)shape;
+        var font = autoShape.TextFrame!.Paragraphs[0].Portions[0].Font;
+        
+        // Act
+        var fontSize = font.Size;
+        
+        // Assert
+        fontSize.Should().Be(expectedSize);
+    }
+    
+    [Fact]
+    public void Size_Getter_returns_font_size_of_non_first_portion()
+    {
+        // Arrange
+        var font1 = _fixture.Pre015.Slides[0].Shapes.GetById<IAutoShape>(5).TextFrame!.Paragraphs[0].Portions[2].Font;
+        var font2 = _fixture.Pre009.Slides[2].Shapes.GetById<IAutoShape>(2).TextFrame!.Paragraphs[0].Portions[1].Font;
 
-        // Act-Assert
-        portionCase1.Font.Size.Should().Be(18);
-        portionCase2.Font.Size.Should().Be(18);
-        portionCase3.Font.Size.Should().Be(18);
-        portionCase4.Font.Size.Should().Be(18);
-        portionCase5.Font.Size.Should().Be(20);
-        portionCase6.Font.Size.Should().Be(44);
-        portionCase7.Font.Size.Should().Be(32);
-        portionCase8.Font.Size.Should().Be(18);
-        portionCase9.Font.Size.Should().Be(12);
-        portionCase10.Font.Size.Should().Be(21);
-        portionCase11.Font.Size.Should().Be(20);
-        portionCase12.Font.Size.Should().Be(15);
-        portionCase13.Font.Size.Should().Be(12);
-        portionCase14.Font.Size.Should().Be(12);
-        portionCase15.Font.Size.Should().Be(27);
-        portionCase16.Font.Size.Should().Be(18);
+        // Act
+        var fontSize1 = font1.Size;
+        var fontSize2 = font2.Size;
+        
+        // Assert
+        fontSize1.Should().Be(18);
+        fontSize2.Should().Be(20);
     }
 
     [Theory]
@@ -189,25 +178,25 @@ public class FontTests : ShapeCrawlerTest, IClassFixture<PresentationFixture>
 
     [Theory]
     [MemberData(nameof(TestCasesSizeSetter))]
-    public void Size_Setter_changes_Font_Size_of_paragraph_portion(TestCase testCase)
+    public void Size_Setter_sets_font_size(TestCase testCase)
     {
         // Arrange
         var pres = testCase.Presentation;
         var font = testCase.AutoShape.TextFrame!.Paragraphs[0].Portions[0].Font;
-        const int newFontSize = 28;
         var mStream = new MemoryStream();
-        var oldFontSize = font.Size;
+        var oldSize = font.Size;
+        var newSize = oldSize + 2;
 
         // Act
-        font.Size = newFontSize;
-        pres.SaveAs(mStream);
+        font.Size = newSize;
 
         // Assert
+        var errors = PptxValidator.Validate(pres);
+        errors.Should().BeEmpty();
+        pres.SaveAs(mStream);
         testCase.SetPresentation(mStream);
         font = testCase.AutoShape.TextFrame!.Paragraphs[0].Portions[0].Font;
-        font.Size.Should().NotBe(oldFontSize);
-        font.Size.Should().Be(newFontSize);
-        font.CanChange().Should().BeTrue();
+        font.Size.Should().Be(newSize);
     }
 
     public static IEnumerable<object[]> TestCasesSizeSetter
@@ -217,17 +206,40 @@ public class FontTests : ShapeCrawlerTest, IClassFixture<PresentationFixture>
             var testCase1 = new TestCase("#1");
             testCase1.PresentationName = "001.pptx";
             testCase1.SlideNumber = 1;
-            testCase1.ShapeId = 4;
+            testCase1.ShapeName = "TextBox 3";
             yield return new object[] { testCase1 };
-
+            
             var testCase2 = new TestCase("#2");
             testCase2.PresentationName = "026.pptx";
             testCase2.SlideNumber = 1;
             testCase2.ShapeName = "AutoShape 1";
             yield return new object[] { testCase2 };
+            
+            var testCase3 = new TestCase("#3");
+            testCase3.PresentationName = "autoshape-case016.pptx";
+            testCase3.SlideNumber = 1;
+            testCase3.ShapeName = "Text Placeholder 1";
+            yield return new object[] { testCase3 };
         }
     }
 
+    [Theory]
+    [SlideShapeData("#1", "001.pptx", 1, "TextBox 3")]
+    [SlideShapeData("#2", "026.pptx", 1, "AutoShape 1")]
+    [SlideShapeData("#3", "autoshape-case016.pptx", 1, "Text Placeholder 1")]
+    public void CanChange_returns_true(string displayName, IShape shape)
+    {
+        // Arrange
+        var autoShape = (IAutoShape)shape;
+        var font = autoShape.TextFrame!.Paragraphs[0].Portions[0].Font;
+
+        // Act
+        var canChange = font.CanChange();
+
+        // Assert
+        canChange.Should().BeTrue();
+    }
+    
     [Fact]
     public void IsBold_GetterReturnsTrue_WhenFontOfNonPlaceholderTextIsBold()
     {

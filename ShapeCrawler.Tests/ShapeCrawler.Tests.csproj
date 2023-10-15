@@ -27,7 +27,7 @@
     <PackageReference Include="SharpCompress" Version="0.29.0" />
     <PackageReference Include="System.Resources.Extensions" Version="5.0.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -176,6 +176,10 @@
     <None Remove="Resource\pictures\pictures-case003.pptx" />
     <None Remove="Resource\pictures\pictures-case004.pptx" />
     <EmbeddedResource Include="Resource\pictures\pictures-case004.pptx" />
+    <None Remove="Resource\autoshape\autoshape-case016.pptx" />
+    <EmbeddedResource Include="Resource\autoshape\autoshape-case016.pptx" />
+    <None Remove="Resource\015.pptx" />
+    <EmbeddedResource Include="Resource\015.pptx" />
   </ItemGroup>
 
 </Project>
