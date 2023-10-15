@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+#if DEBUG
+using System.Threading.Tasks;
+#endif
 using DocumentFormat.OpenXml.Packaging;
 
 namespace ShapeCrawler;
@@ -44,6 +47,9 @@ public interface ISlide : ISlideStructure
     void Hide();
 
 #if DEBUG
+    
+    Task<string> ToHtml();
+    
     /// <summary>
     ///     Saves slide as PNG image.
     /// </summary>

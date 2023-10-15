@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OneOf;
@@ -23,6 +24,7 @@ internal class SCChart : SCShape, IChart
     private readonly P.GraphicFrame pGraphicFrame;
     private readonly Lazy<SCSeriesCollection> series;
     private readonly Lazy<SCLibraryCollection<double>?> xValues;
+    private readonly C.PlotArea cPlotArea;
 
     // Contains chart elements, e.g. <c:pieChart>, <c:barChart>, <c:lineChart> etc. If the chart type is not a combination,
     // then collection contains only single item.
@@ -50,8 +52,8 @@ internal class SCChart : SCShape, IChart
 
         this.ChartPart = (ChartPart)slideStructureCore.TypedOpenXmlPart.GetPartById(cChartReference.Id!);
 
-        var cPlotArea = this.ChartPart.ChartSpace.GetFirstChild<C.Chart>() !.PlotArea;
-        this.cXCharts = cPlotArea!.Where(e => e.LocalName.EndsWith("Chart", StringComparison.Ordinal));
+        this.cPlotArea = this.ChartPart.ChartSpace.GetFirstChild<C.Chart>() !.PlotArea!;
+        this.cXCharts = this.cPlotArea.Where(e => e.LocalName.EndsWith("Chart", StringComparison.Ordinal));
 
         this.ChartWorkbook = this.ChartPart.EmbeddedPackagePart != null ? new ChartWorkbook(this, this.ChartPart.EmbeddedPackagePart) : null;
     }
@@ -104,12 +106,19 @@ internal class SCChart : SCShape, IChart
     public byte[] WorkbookByteArray => this.ChartWorkbook!.BinaryData;
 
     public SpreadsheetDocument SDKSpreadsheetDocument => this.ChartWorkbook!.SpreadsheetDocument.Value;
+    
+    public IFormatAxis FormatAxis => this.GetFormatAxis();
 
     internal ChartWorkbook? ChartWorkbook { get; set; }
 
     internal ChartPart ChartPart { get; private set; }
 
     internal override void Draw(SKCanvas canvas)
+    {
+        throw new NotImplementedException();
+    }
+
+    internal override IHtmlElement ToHtmlElement()
     {
         throw new NotImplementedException();
     }
@@ -130,6 +139,11 @@ internal class SCChart : SCShape, IChart
         Enum.TryParse(chartName, true, out SCChartType enumChartType);
 
         return enumChartType;
+    }
+    
+    private IFormatAxis GetFormatAxis()
+    {
+        return new SCFormatAxis(this.cPlotArea);
     }
 
     private ICategoryCollection? GetCategories()

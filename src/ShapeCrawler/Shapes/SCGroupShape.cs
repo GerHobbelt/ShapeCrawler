@@ -1,4 +1,5 @@
-﻿using DocumentFormat.OpenXml;
+﻿using AngleSharp.Html.Dom;
+using DocumentFormat.OpenXml;
 using OneOf;
 using ShapeCrawler.Shared;
 using SkiaSharp;
@@ -34,6 +35,11 @@ internal sealed class SCGroupShape : SCShape, IGroupShape
         throw new System.NotImplementedException();
     }
 
+    internal override IHtmlElement ToHtmlElement()
+    {
+        throw new System.NotImplementedException();
+    }
+
     internal override string ToJson()
     {
         throw new System.NotImplementedException();
@@ -64,7 +70,6 @@ internal sealed class SCGroupShape : SCShape, IGroupShape
         var groupedShapeRight = groupedShape.X + groupedShape.Width;
         if (groupedShapeRight > parentGroupRight)
         {
-            
             var diff = groupedShapeRight - parentGroupRight;
             var diffEmu = UnitConverter.HorizontalPixelToEmu(diff);
             extents.Cx = new Int64Value(extents.Cx! + diffEmu);

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using AngleSharp;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -75,6 +77,20 @@ internal sealed class SCSlide : SlideStructure, ISlide
         }
     }
 
+    public async Task<string> ToHtml()
+    {
+        var browsingContext = BrowsingContext.New(Configuration.Default.WithDefaultLoader().WithCss());
+        var document = await browsingContext.OpenNewAsync().ConfigureAwait(false);
+        var body = document.Body!;
+        
+        foreach (var shape in this.Shapes.OfType<SCShape>())
+        {
+            body.AppendChild(shape.ToHtmlElement());
+        }
+
+        return document.DocumentElement.OuterHtml;
+    }
+
     public void SaveAsPng(Stream stream)
     {
         var imageInfo = new SKImageInfo(this.PresentationInternal.SlideWidth, this.PresentationInternal.SlideHeight);
@@ -97,11 +113,11 @@ internal sealed class SCSlide : SlideStructure, ISlide
     {
         var returnList = new List<ITextFrame>();
 
-        // this will add all textboxes from shapes on that slide that directly inherit ITextBoxContainer
-        returnList.AddRange(this.Shapes.OfType<ITextFrameContainer>()
+        var frames = this.Shapes.OfType<ITextFrameContainer>()
             .Where(t => t.TextFrame != null)
-            .Select(t => t.TextFrame)
-            .ToList());
+            .Select(t => t.TextFrame!)
+            .ToList();
+        returnList.AddRange(frames);
 
         // if this slide contains a table, the cells from that table will have to be added as well, since they inherit from ITextBoxContainer but are not direct descendants of the slide
         var tablesOnSlide = this.Shapes.OfType<ITable>().ToList();
@@ -221,7 +237,7 @@ internal sealed class SCSlide : SlideStructure, ISlide
 #if NET7_0
         return raw[SCConstants.CustomDataElementName.Length..];
 #else
-            return raw.Substring(SCConstants.CustomDataElementName.Length);
+        return raw.Substring(SCConstants.CustomDataElementName.Length);
 #endif
     }
 
