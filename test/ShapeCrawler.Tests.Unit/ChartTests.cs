@@ -157,7 +157,24 @@ public class ChartTests : SCTest
         // Assert
         chartPoints.Should().NotBeEmpty();
     }
+    
+    [TestCase("charts_bar-chart.pptx", "Bar Chart 1")]
+    [TestCase("019.pptx", "Pie Chart 1")]
+    public void SeriesCollection_RemoveAt_removes_series_by_index(string pptxFile, string chartName)
+    {
+        // Arrange
+        var pptxStream = GetTestStream(pptxFile);
+        var pres = SCPresentation.Open(pptxStream);
+        var chart = pres.Slides[0].Shapes.GetByName<IChart>(chartName);
+        var expectedSeriesCount = chart.SeriesCollection.Count - 1; 
             
+        // Act
+        chart.SeriesCollection.RemoveAt(0);
+
+        // Assert
+        chart.SeriesCollection.Count.Should().Be(expectedSeriesCount);
+    }
+    
     [Fact]
     public void CategoryName_GetterReturnsChartCategoryName()
     {
@@ -334,7 +351,7 @@ public class ChartTests : SCTest
     }
 
     [Test]
-    public void FormatAxis_AxisOptions_Bounds_Minimum_Getter()
+    public void Axes_ValueAxis_Minimum_Getter()
     {
         // Arrange
         var pptx = TestHelper.GetStream("charts_bar-chart.pptx");
@@ -342,14 +359,33 @@ public class ChartTests : SCTest
         var barChart = pres.Slides[0].Shapes.GetByName<IChart>("Bar Chart 1");
         
         // Act
-        var minimum = barChart.FormatAxis.AxisOptions.Bounds.Minimum;
+        var minimum = barChart.Axes.ValueAxis.Minimum;
         
         // Assert
         minimum.Should().Be(0);
     }
     
     [Test]
-    public void FormatAxis_AxisOptions_Bounds_Maximum_Getter_returns_default_6()
+    public void Axes_ValueAxis_Minimum_Setter()
+    {
+        // Arrange
+        var pptx = TestHelper.GetStream("charts_bar-chart.pptx");
+        var pres = SCPresentation.Open(pptx);
+        var barChart = pres.Slides[0].Shapes.GetByName<IChart>("Bar Chart 1");
+        var mStream = new MemoryStream();
+        
+        // Act
+        barChart.Axes.ValueAxis.Minimum = 1;
+
+        // Assert
+        pres.SaveAs(mStream);
+        barChart = SCPresentation.Open(mStream).Slides[0].Shapes.GetByName<IChart>("Bar Chart 1");
+        barChart.Axes.ValueAxis.Minimum.Should().Be(1);
+        PptxValidator.Validate(pres);
+    }
+    
+    [Test]
+    public void Axes_ValueAxis_Maximum_Setter()
     {
         // Arrange
         var pptx = TestHelper.GetStream("charts_bar-chart.pptx");
@@ -357,7 +393,23 @@ public class ChartTests : SCTest
         var barChart = pres.Slides[0].Shapes.GetByName<IChart>("Bar Chart 1");
         
         // Act
-        var maximum = barChart.FormatAxis!.AxisOptions.Bounds!.Maximum;
+        barChart.Axes.ValueAxis!.Maximum = 7;
+
+        // Assert
+        barChart.Axes.ValueAxis.Maximum.Should().Be(7);
+        PptxValidator.Validate(pres);
+    }
+    
+    [Test]
+    public void Axes_ValueAxis_Maximum_Getter_returns_default_6()
+    {
+        // Arrange
+        var pptx = TestHelper.GetStream("charts_bar-chart.pptx");
+        var pres = SCPresentation.Open(pptx);
+        var barChart = pres.Slides[0].Shapes.GetByName<IChart>("Bar Chart 1");
+        
+        // Act
+        var maximum = barChart.Axes.ValueAxis.Maximum;
         
         // Assert
         maximum.Should().Be(6);

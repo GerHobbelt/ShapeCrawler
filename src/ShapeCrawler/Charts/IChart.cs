@@ -30,7 +30,7 @@ public interface IChart : IShape
     bool HasCategories { get; }
 
     /// <summary>
-    ///     Gets collection of categories if chart type has categories, otherwise <c>null</c>.
+    ///     Gets collection of categories. Returns <see langword="null"/> if chart type has no categories.
     /// </summary>
     public ICategoryCollection? Categories { get; }
 
@@ -60,7 +60,7 @@ public interface IChart : IShape
     SpreadsheetDocument SDKSpreadsheetDocument { get; }
 
     /// <summary>
-    ///     Gets chart axis formatting options. Returns <see langword="null"/> if chart axis formatting options are not available, for example, for pie charts.
+    ///     Gets chart axes manager.
     /// </summary>
-    IFormatAxis? FormatAxis { get; }
+    IAxesManager Axes { get; }
 }

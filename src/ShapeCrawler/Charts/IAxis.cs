@@ -1,30 +1,29 @@
-﻿using System;
+﻿namespace ShapeCrawler;
 
-// ReSharper disable once CheckNamespace
-namespace ShapeCrawler;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 /// <summary>
-///     Represents axis bounds.
+///     Represents a chart axis.
 /// </summary>
-public interface IBounds
+public interface IAxis
 {
     /// <summary>
-    ///     Gets or sets the minimum value of the axis.
+    ///     Gets or sets axis minimum value.
     /// </summary>
     double Minimum { get; set; }
-
+    
     /// <summary>
-    ///     Gets or sets the maximum value of the axis.
+    ///     Gets or sets axis maximum value.
     /// </summary>
     double Maximum { get; set; }
 }
 
-internal class SCBounds : IBounds
+internal class SCAxis : IAxis
 {
     private const double DefaultMax = 6;
-    private readonly DocumentFormat.OpenXml.Drawing.Charts.Scaling cScaling;
+    private readonly C.Scaling cScaling;
 
-    public SCBounds(DocumentFormat.OpenXml.Drawing.Charts.Scaling cScaling)
+    public SCAxis(C.Scaling cScaling)
     {
         this.cScaling = cScaling;
     }
@@ -43,23 +42,25 @@ internal class SCBounds : IBounds
 
     private void SetMaximum(double value)
     {
-        throw new NotImplementedException();
-    }
-
-    private double GetMaximum()
-    {
-        var cMax = this.cScaling.MaxAxisValue;
-        return cMax == null ? DefaultMax : cMax.Val!;
+        this.cScaling.MaxAxisValue = new C.MaxAxisValue { Val = value };
     }
 
     private void SetMinimum(double value)
     {
-        throw new NotImplementedException();
+        this.cScaling.MinAxisValue = new C.MinAxisValue { Val = value };
     }
 
     private double GetMinimum()
     {
         var cMin = this.cScaling.MinAxisValue;
+        
         return cMin == null ? 0 : cMin.Val!;
+    }
+    
+    private double GetMaximum()
+    {
+        var cMax = this.cScaling.MaxAxisValue;
+        
+        return cMax == null ? DefaultMax : cMax.Val!;
     }
 }
