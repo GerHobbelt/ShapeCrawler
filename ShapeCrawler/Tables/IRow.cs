@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
 
 // ReSharper disable CheckNamespace
@@ -27,7 +26,7 @@ public interface IRow
     IRow Clone();
 }
 
-internal class SCRow : IRow
+internal sealed class SCRow : IRow
 {
     private readonly Lazy<List<SCCell>> cells;
     private readonly int index;

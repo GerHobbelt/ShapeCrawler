@@ -10,7 +10,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace ShapeCrawler.AutoShapes;
 
-internal class SCFont : IFont
+internal sealed class SCFont : IFont
 {
     private readonly A.Text aText;
     private readonly A.FontScheme aFontScheme;
@@ -36,13 +36,20 @@ internal class SCFont : IFont
             shape = (Shape)portion.ParentParagraph.ParentTextFrame.TextFrameContainer;
         }
 
-        this.aFontScheme = shape.SlideMasterInternal.ThemePart.Theme.ThemeElements!.FontScheme!;
+        var themeFontScheme = (ThemeFontScheme)shape.SlideMasterInternal.Theme.FontScheme; 
+        this.aFontScheme = themeFontScheme.AFontScheme;
     }
 
-    public string Name
+    public string? LatinName
     {
-        get => this.GetName();
-        set => this.SetName(value);
+        get => this.GetLatinName();
+        set => this.SetLatinName(value!);
+    }
+
+    public string? EastAsianName
+    {
+        get => this.GetEastAsianName();
+        set => this.SetEastAsianName(value!);
     }
 
     public int Size
@@ -199,17 +206,41 @@ internal class SCFont : IFont
         return 0;
     }
 
-    private string GetName()
+    private string GetLatinName()
     {
-        const string majorLatinFont = "+mj-lt";
-        if (this.latinFont.Value.Typeface == majorLatinFont)
+        if (this.latinFont.Value.Typeface == "+mj-lt")
         {
             return this.aFontScheme.MajorFont!.LatinFont!.Typeface!;
         }
 
         return this.latinFont.Value.Typeface!;
     }
+    
+    private string? GetEastAsianName()
+    {
+        var aEastAsianFont = this.GetAEastAsianFont();
+        if (aEastAsianFont.Typeface == "+mj-lt")
+        {
+            return this.aFontScheme.MajorFont!.EastAsianFont!.Typeface!;
+        }
 
+        return aEastAsianFont.Typeface!;
+    }
+
+    private A.EastAsianFont GetAEastAsianFont()
+    {
+        var aEastAsianFont = this.aText.Parent!.GetFirstChild<A.RunProperties>()?.GetFirstChild<A.EastAsianFont>();
+
+        if (aEastAsianFont != null)
+        {
+            return aEastAsianFont;
+        }
+
+        var phFontData = FontDataParser.FromPlaceholder(this.ParentPortion.ParentParagraph);
+        
+        return phFontData.AEastAsianFont ?? this.aFontScheme.MinorFont!.EastAsianFont!;
+    }
+    
     private A.LatinFont GetALatinFont()
     {
         var aRunProperties = this.aText.Parent!.GetFirstChild<A.RunProperties>();
@@ -355,11 +386,17 @@ internal class SCFont : IFont
         }
     }
 
-    private void SetName(string fontName)
+    private void SetLatinName(string latinFont)
     {
         var aLatinFont = this.latinFont.Value;
-        aLatinFont.Typeface = fontName;
+        aLatinFont.Typeface = latinFont;
         this.latinFont.Reset();
+    }
+    
+    private void SetEastAsianName(string eastAsianFont)
+    {
+        var aEastAsianFont = this.GetAEastAsianFont();
+        aEastAsianFont.Typeface = eastAsianFont;
     }
 
     private void SetFontSize(int newFontSize)

@@ -39,7 +39,7 @@ public interface IAutoShape : IShape
     ITextFrame? TextFrame { get; }
 }
 
-internal class AutoShape : SlideShape, IAutoShape, ITextFrameContainer
+internal sealed class AutoShape : SlideShape, IAutoShape, ITextFrameContainer
 {
     // SkiaSharp uses 72 Dpi (https://stackoverflow.com/a/69916569/2948684), ShapeCrawler uses 96 Dpi.
     // 96/72=1.4
@@ -116,7 +116,7 @@ internal class AutoShape : SlideShape, IAutoShape, ITextFrameContainer
         var paint = new SKPaint();
         var fontSize = font.Size;
         paint.TextSize = fontSize;
-        paint.Typeface = SKTypeface.FromFamilyName(font.Name);
+        paint.Typeface = SKTypeface.FromFamilyName(font.LatinName);
         paint.IsAntialias = true;
 
         var lMarginPixel = UnitConverter.CentimeterToPixel(this.TextFrame.LeftMargin);

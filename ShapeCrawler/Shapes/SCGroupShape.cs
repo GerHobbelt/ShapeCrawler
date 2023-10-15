@@ -1,6 +1,5 @@
 ﻿using OneOf;
 using ShapeCrawler.Collections;
-using ShapeCrawler.Placeholders;
 using ShapeCrawler.SlideMasters;
 using ShapeCrawler.Statics;
 using SkiaSharp;
@@ -9,7 +8,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 // ReSharper disable PossibleMultipleEnumeration
 namespace ShapeCrawler.Shapes;
 
-internal class SCGroupShape : SlideShape, IGroupShape
+internal sealed class SCGroupShape : SlideShape, IGroupShape
 {
     private readonly P.GroupShape pGroupShape;
     private readonly OneOf<SCSlide, SCSlideLayout, SCSlideMaster> oneOfSlide;

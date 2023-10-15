@@ -1,9 +1,8 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace ShapeCrawler.Exceptions;
 
-internal class PresentationIsLargeException : ShapeCrawlerException
+internal sealed class PresentationIsLargeException : ShapeCrawlerException
 {
     private PresentationIsLargeException(string message)
         : base(message, (int)ExceptionCode.PresentationIsLargeException)
@@ -16,11 +15,11 @@ internal class PresentationIsLargeException : ShapeCrawlerException
     /// </summary>
     internal static PresentationIsLargeException FromMax(int maxSize)
     {
-#if NET6_0
+#if NET7_0
         var message = ExceptionMessages.PresentationIsLarge.Replace(
             "{0}",
             maxSize.ToString(CultureInfo.CurrentCulture), 
-            StringComparison.OrdinalIgnoreCase);
+            System.StringComparison.OrdinalIgnoreCase);
 #else
             var message =
                 ExceptionMessages.PresentationIsLarge.Replace("{0}", maxSize.ToString(CultureInfo.CurrentCulture));

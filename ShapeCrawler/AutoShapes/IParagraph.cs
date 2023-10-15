@@ -46,6 +46,11 @@ public interface IParagraph
     ISpacing Spacing { get; }
 
     /// <summary>
+    ///     Gets font.
+    /// </summary>
+    IFont Font { get; }
+
+    /// <summary>
     ///     Adds new text portion in paragraph.
     /// </summary>
     void AddPortion(string text);
@@ -56,7 +61,7 @@ public interface IParagraph
     void ReplaceText(string oldValue, string newValue);
 }
 
-internal class SCParagraph : IParagraph
+internal sealed class SCParagraph : IParagraph
 {
     private readonly Lazy<SCBullet> bullet;
     private readonly ResettableLazy<PortionCollection> portions;
@@ -69,7 +74,7 @@ internal class SCParagraph : IParagraph
         this.Level = this.GetIndentLevel();
         this.bullet = new Lazy<SCBullet>(this.GetBullet);
         this.ParentTextFrame = textBox;
-        this.portions = new ResettableLazy<PortionCollection>(this.GetPortions);
+        this.portions = new ResettableLazy<PortionCollection>(() => new PortionCollection(this.AParagraph, this));
     }
 
     internal event Action? TextChanged;
@@ -95,6 +100,8 @@ internal class SCParagraph : IParagraph
     public int IndentLevel => this.GetIndentLevel();
 
     public ISpacing Spacing => this.GetSpacing();
+
+    public IFont Font => this.GetFont();
 
     internal TextFrame ParentTextFrame { get; }
 
@@ -193,6 +200,11 @@ internal class SCParagraph : IParagraph
         }
     }
     
+    private IFont GetFont()
+    {
+        throw new NotImplementedException();
+    }
+    
     private ISpacing GetSpacing()
     {
         return new SCSpacing(this, this.AParagraph);
@@ -247,11 +259,6 @@ internal class SCParagraph : IParagraph
         }
 
         this.TextChanged?.Invoke();
-    }
-
-    private PortionCollection GetPortions()
-    {
-        return new PortionCollection(this.AParagraph, this);
     }
 
     private void SetAlignment(SCTextAlignment alignmentValue)

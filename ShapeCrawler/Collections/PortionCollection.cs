@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using ShapeCrawler.AutoShapes;
 using ShapeCrawler.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -9,28 +8,19 @@ using A = DocumentFormat.OpenXml.Drawing;
 // ReSharper disable PossibleMultipleEnumeration
 namespace ShapeCrawler.Collections;
 
-/// <summary>
-///     <inheritdoc cref="IPortionCollection"/>
-/// </summary>
-internal class PortionCollection : IPortionCollection
+internal sealed class PortionCollection : IPortionCollection
 {
     private readonly ResettableLazy<List<SCPortion>> portions;
 
-    /// <summary>
-    ///     Initializes a new instance of the <see cref="PortionCollection"/> class.
-    /// </summary>
-    public PortionCollection(A.Paragraph aParagraph, SCParagraph paragraph)
+    internal PortionCollection(A.Paragraph aParagraph, SCParagraph paragraph)
     {
         this.portions = new ResettableLazy<List<SCPortion>>(() => GetPortions(aParagraph, paragraph));
     }
 
-    /// <inheritdoc/>
     public int Count => this.portions.Value.Count;
 
-    /// <inheritdoc/>
     public IPortion this[int index] => this.portions.Value[index];
 
-    /// <inheritdoc/>
     public void Remove(IPortion removingPortion)
     {
         var removingInnerPortion = (SCPortion)removingPortion;
@@ -41,7 +31,6 @@ internal class PortionCollection : IPortionCollection
         this.portions.Reset();
     }
 
-    /// <inheritdoc/>
     public void Remove(IList<IPortion> removingPortions)
     {
         foreach (SCPortion portion in removingPortions.Cast<SCPortion>())
@@ -50,7 +39,6 @@ internal class PortionCollection : IPortionCollection
         }
     }
 
-    /// <inheritdoc/>
     public IEnumerator<IPortion> GetEnumerator()
     {
         return this.portions.Value.GetEnumerator();
