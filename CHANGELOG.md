@@ -1,5 +1,9 @@
 # Changelog  
 
+## Version 0.42.0 - 2023-03-04
+🍀Added `IAutoShape.Duplicate()` [#444](https://github.com/ShapeCrawler/ShapeCrawler/issues/444)  
+🍀Added `IShapeCollection.AddLine()` [#465](https://github.com/ShapeCrawler/ShapeCrawler/issues/465)
+
 ## Version 0.41.4 - 2023-02-13
 🐞Fixed updating X/Y coordinates of grouped shape [#452](https://github.com/ShapeCrawler/ShapeCrawler/issues/452)
 
