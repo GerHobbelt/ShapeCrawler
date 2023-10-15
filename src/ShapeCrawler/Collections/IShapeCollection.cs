@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OneOf;
+using ShapeCrawler.AutoShapes;
 using ShapeCrawler.Constants;
 using ShapeCrawler.Extensions;
 using ShapeCrawler.Factories;
@@ -29,11 +30,6 @@ namespace ShapeCrawler;
 /// </summary>
 public interface IShapeCollection : IReadOnlyList<IShape>
 {
-    /// <summary>
-    ///     Gets collection of AutoShapes.
-    /// </summary>
-    IAutoShapeCollection AutoShapes { get; }
-
     /// <summary>
     ///     Gets shape by identifier. Returns <see langword="null"/> if shape is not found.
     /// </summary>
@@ -68,6 +64,16 @@ public interface IShapeCollection : IReadOnlyList<IShape>
     /// <param name="y">Y coordinate in pixels.</param>
     /// <param name="stream">Video stream data.</param>
     IVideoShape AddVideo(int x, int y, Stream stream);
+    
+    /// <summary>
+    ///     Adds a new Rectangle shape.
+    /// </summary>
+    IRectangle AddRectangle(int x, int y, int w, int h);
+    
+    /// <summary>
+    ///     Adds a new Rounded Rectangle shape. 
+    /// </summary>
+    IRoundedRectangle AddRoundedRectangle(int x, int y, int w, int h);
 
     /// <summary>
     ///     Creates a new Table.
@@ -83,33 +89,47 @@ public interface IShapeCollection : IReadOnlyList<IShape>
 internal sealed class ShapeCollection : IShapeCollection
 {
     private const long DefaultTableWidthEmu = 8128000L;
-    private readonly P.ShapeTree shapeTree;
-    private readonly List<IShape> shapes;
+    private readonly P.ShapeTree pShapeTree;
+    private readonly ResettableLazy<List<IShape>> shapes;
 
-    private ShapeCollection(
-        List<IShape> shapes,
-        P.ShapeTree shapeTree,
-        OneOf<SCSlide, SCSlideLayout, SCSlideMaster> slideObject)
+    internal ShapeCollection(
+        OneOf<SlidePart, SlideLayoutPart, SlideMasterPart> parentSlidePartOf,
+        OneOf<SCSlide, SCSlideLayout, SCSlideMaster> parentSlideStructureOf)
     {
-        this.ParentSlideObject = slideObject;
-        this.shapeTree = shapeTree;
-        this.shapes = shapes;
+        this.ParentSlideStructure = parentSlideStructureOf;
+        
+        var chartGrFrameHandler = new ChartGraphicFrameHandler();
+        var tableGrFrameHandler = new TableGraphicFrameHandler();
+        var oleGrFrameHandler = new OleGraphicFrameHandler();
+        var autoShapeCreator = new AutoShapeCreator();
+        var pictureHandler = new PictureHandler();
+
+        autoShapeCreator.Successor = oleGrFrameHandler;
+        oleGrFrameHandler.Successor = pictureHandler;
+        pictureHandler.Successor = chartGrFrameHandler;
+        chartGrFrameHandler.Successor = tableGrFrameHandler;
+
+        this.pShapeTree = parentSlidePartOf.Match(
+            slidePart => slidePart.Slide.CommonSlideData!.ShapeTree!,
+            layoutPart => layoutPart.SlideLayout.CommonSlideData!.ShapeTree!,
+            masterPart => masterPart.SlideMaster.CommonSlideData!.ShapeTree!);
+
+        this.shapes = new ResettableLazy<List<IShape>>(() => this.GetShapes(autoShapeCreator));
     }
 
-    public int Count => this.shapes.Count;
+    public int Count => this.shapes.Value.Count;
 
-    public IAutoShapeCollection AutoShapes => this.GetAutoShapes();
+    internal OneOf<SCSlide, SCSlideLayout, SCSlideMaster> ParentSlideStructure { get; }
 
-    internal OneOf<SCSlide, SCSlideLayout, SCSlideMaster> ParentSlideObject { get; }
-
-    public IShape this[int index] => this.shapes[index];
+    public IShape this[int index] => this.shapes.Value[index];
 
     public IAudioShape AddAudio(int xPixels, int yPixels, Stream mp3Stream)
     {
         long xEmu = UnitConverter.HorizontalPixelToEmu(xPixels);
         long yEmu = UnitConverter.VerticalPixelToEmu(yPixels);
 
-        var slideBase = this.ParentSlideObject.Match(slide => slide as SlideStructure, layout => layout, master => master);
+        var slideBase =
+            this.ParentSlideStructure.Match(slide => slide as SlideStructure, layout => layout, master => master);
         var mediaDataPart =
             slideBase.PresentationInternal.SDKPresentationInternal.CreateMediaDataPart("audio/mpeg", ".mp3");
 
@@ -129,7 +149,7 @@ internal sealed class ShapeCollection : IShapeCollection
 
         P.NonVisualPictureProperties nonVisualPictureProperties1 = new();
 
-        uint shapeId = (uint)this.shapes.Max(sp => sp.Id) + 1;
+        uint shapeId = (uint)this.shapes.Value.Max(sp => sp.Id) + 1;
         P.NonVisualDrawingProperties nonVisualDrawingProperties2 = new() { Id = shapeId, Name = $"Audio{shapeId}" };
         A.HyperlinkOnClick hyperlinkOnClick1 = new A.HyperlinkOnClick()
             { Id = string.Empty, Action = "ppaction://media" };
@@ -209,12 +229,12 @@ internal sealed class ShapeCollection : IShapeCollection
         picture1.Append(blipFill1);
         picture1.Append(shapeProperties1);
 
-        this.shapeTree.Append(picture1);
+        this.pShapeTree.Append(picture1);
 
         P14.CreationId creationId1 = new() { Val = (UInt32Value)3972997422U };
         creationId1.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
 
-        return new SCAudioShape(this.shapeTree, this.ParentSlideObject, this);
+        return new SCAudioShape(this.pShapeTree, this.ParentSlideStructure, this);
     }
 
     public IVideoShape AddVideo(int x, int y, Stream stream)
@@ -222,7 +242,8 @@ internal sealed class ShapeCollection : IShapeCollection
         long xEmu = UnitConverter.HorizontalPixelToEmu(x);
         long yEmu = UnitConverter.VerticalPixelToEmu(y);
 
-        var slideBase = this.ParentSlideObject.Match(slide => slide as SlideStructure, layout => layout, master => master);
+        var slideBase =
+            this.ParentSlideStructure.Match(slide => slide as SlideStructure, layout => layout, master => master);
         MediaDataPart mediaDataPart =
             slideBase.PresentationInternal.SDKPresentationInternal.CreateMediaDataPart("video/mp4", ".mp4");
 
@@ -241,7 +262,7 @@ internal sealed class ShapeCollection : IShapeCollection
 
         P.NonVisualPictureProperties nonVisualPictureProperties1 = new();
 
-        uint shapeId = (uint)this.shapes.Max(sp => sp.Id) + 1;
+        uint shapeId = (uint)this.shapes.Value.Max(sp => sp.Id) + 1;
         P.NonVisualDrawingProperties nonVisualDrawingProperties2 = new() { Id = shapeId, Name = $"Video{shapeId}" };
         A.HyperlinkOnClick hyperlinkOnClick1 = new A.HyperlinkOnClick()
             { Id = string.Empty, Action = "ppaction://media" };
@@ -321,12 +342,89 @@ internal sealed class ShapeCollection : IShapeCollection
         picture1.Append(blipFill1);
         picture1.Append(shapeProperties1);
 
-        this.shapeTree.Append(picture1);
+        this.pShapeTree.Append(picture1);
 
         P14.CreationId creationId1 = new() { Val = (UInt32Value)3972997422U };
         creationId1.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
 
-        return new SCVideoShape(this.shapeTree, this.ParentSlideObject, this);
+        return new SCVideoShape(this.pShapeTree, this.ParentSlideStructure, this);
+    }
+
+    public IRectangle AddRectangle(int x, int y, int width, int height)
+    {
+        var newPShapeTreeChild = this.CreatePShape(x, y, width, height, A.ShapeTypeValues.Rectangle);
+
+        var newRectangle = new SCRectangle(newPShapeTreeChild, this.ParentSlideStructure, this);
+        newRectangle.Outline.Color = "000000";
+        
+        this.shapes.Value.Add(newRectangle);
+
+        return newRectangle;
+    }
+    
+    private P.Shape CreatePShape(int x, int y, int width, int height, A.ShapeTypeValues form)
+    {
+        var idAndName = this.GenerateIdAndName();
+        var adjustValueList = new A.AdjustValueList();
+        var presetGeometry = new A.PresetGeometry(adjustValueList) { Preset = form };
+        var shapeProperties = new P.ShapeProperties();
+        var xEmu = UnitConverter.HorizontalPixelToEmu(x);
+        var yEmu = UnitConverter.VerticalPixelToEmu(y);
+        var widthEmu = UnitConverter.HorizontalPixelToEmu(width);
+        var heightEmu = UnitConverter.VerticalPixelToEmu(height);
+        shapeProperties.AddAXfrm(xEmu, yEmu, widthEmu, heightEmu);
+        shapeProperties.Append(presetGeometry);
+
+        var aRunProperties = new A.RunProperties { Language = "en-US" };
+        var aText = new A.Text(string.Empty);
+        var aRun = new A.Run(aRunProperties, aText);
+        var aEndParaRPr = new A.EndParagraphRunProperties { Language = "en-US" };
+        var aParagraph = new A.Paragraph(aRun, aEndParaRPr);
+
+        var pShape = new P.Shape(
+            new P.NonVisualShapeProperties(
+                new P.NonVisualDrawingProperties { Id = (uint)idAndName.Item1, Name = idAndName.Item2 },
+                new P.NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
+                new P.ApplicationNonVisualDrawingProperties()),
+            shapeProperties,
+            new P.TextBody(
+                new A.BodyProperties(),
+                new A.ListStyle(),
+                aParagraph));
+
+        return pShape;
+    }
+    
+        
+    private (int, string) GenerateIdAndName()
+    {
+        var maxId = 0;
+        if(this.shapes.Value.Any())
+        {
+            maxId = this.shapes.Value.Max(s => s.Id);    
+        }
+        
+        var maxOrder = Regex.Matches(string.Join(string.Empty, this.shapes.Value.Select(s => s.Name)), "\\d+")
+#if NETSTANDARD2_0
+            .Cast<Match>()
+#endif
+            .Select(m => int.Parse(m.Value))
+            .DefaultIfEmpty(0)
+            .Max();
+        
+        return (maxId + 1, $"AutoShape {maxOrder + 1}");
+    }
+
+    public IRoundedRectangle AddRoundedRectangle(int x, int y, int w, int h)
+    {
+        var newPShape = this.CreatePShape(x, y, w, h, A.ShapeTypeValues.RoundRectangle);
+
+        var newRoundedRectangle = new SCRoundedRectangle(newPShape, this.ParentSlideStructure, this);
+        newRoundedRectangle.Outline.Color = "000000";
+
+        this.shapes.Value.Add(newRoundedRectangle);
+
+        return newRoundedRectangle;
     }
 
     public ITable AddTable(int xPx, int yPx, int columns, int rows)
@@ -379,24 +477,24 @@ internal sealed class ShapeCollection : IShapeCollection
         graphicFrame.Append(pTransform);
         graphicFrame.Append(graphic);
 
-        this.shapeTree.Append(graphicFrame);
-        var table = new SCTable(graphicFrame, this.ParentSlideObject, this);
+        this.pShapeTree.Append(graphicFrame);
+        var table = new SCTable(graphicFrame, this.ParentSlideStructure, this);
 
         return table;
     }
 
     public void Remove(IShape shape)
     {
-        this.shapes.Remove(shape);
+        this.shapes.Value.Remove(shape);
 
         var shapeInternal = (SCShape)shape;
-        shapeInternal.PShapeTreesChild.Remove();
+        shapeInternal.PShapeTreeChild.Remove();
     }
 
     public T? GetById<T>(int shapeId)
         where T : IShape
     {
-        var shape = this.shapes.FirstOrDefault(shape => shape.Id == shapeId);
+        var shape = this.shapes.Value.FirstOrDefault(shape => shape.Id == shapeId);
         return (T?)shape;
     }
 
@@ -410,16 +508,16 @@ internal sealed class ShapeCollection : IShapeCollection
 
     public IShape? GetByName(string shapeName)
     {
-        return this.shapes.FirstOrDefault(shape => shape.Name == shapeName);
+        return this.shapes.Value.FirstOrDefault(shape => shape.Name == shapeName);
     }
 
     public SCShape? GetReferencedShapeOrNull(P.PlaceholderShape inputPph)
     {
-        var phShapes = this.shapes.Where(sp => sp.Placeholder != null).OfType<SCShape>();
+        var phShapes = this.shapes.Value.Where(sp => sp.Placeholder != null).OfType<SCShape>();
         var referencedShape = phShapes.FirstOrDefault(IsEqual);
 
         // https://answers.microsoft.com/en-us/msoffice/forum/all/placeholder-master/0d51dcec-f982-4098-b6b6-94785304607a?page=3
-        if (referencedShape == null && inputPph.Index?.Value == 4294967295 && this.ParentSlideObject.IsT2)
+        if (referencedShape == null && inputPph.Index?.Value == 4294967295 && this.ParentSlideStructure.IsT2)
         {
             var custom = phShapes.Select(sp =>
             {
@@ -476,7 +574,7 @@ internal sealed class ShapeCollection : IShapeCollection
 
     public IEnumerator<IShape> GetEnumerator()
     {
-        return this.shapes.GetEnumerator();
+        return this.shapes.Value.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -484,70 +582,25 @@ internal sealed class ShapeCollection : IShapeCollection
         return this.GetEnumerator();
     }
 
-    internal static ShapeCollection Create(
-        OneOf<SlidePart, SlideLayoutPart, SlideMasterPart> slidePartObject,
-        OneOf<SCSlide, SCSlideLayout, SCSlideMaster> slideObject)
-    {
-        var chartGrFrameHandler = new ChartGraphicFrameHandler();
-        var tableGrFrameHandler = new TableGraphicFrameHandler();
-        var oleGrFrameHandler = new OleGraphicFrameHandler();
-        var autoShapeCreator = new AutoShapeCreator();
-        var pictureHandler = new PictureHandler();
-
-        autoShapeCreator.Successor = oleGrFrameHandler;
-        oleGrFrameHandler.Successor = pictureHandler;
-        pictureHandler.Successor = chartGrFrameHandler;
-        chartGrFrameHandler.Successor = tableGrFrameHandler;
-
-        var pShapeTree = slidePartObject.Match(
-            slidePart => slidePart.Slide.CommonSlideData!.ShapeTree!,
-            layoutPart => layoutPart.SlideLayout.CommonSlideData!.ShapeTree!,
-            masterPart => masterPart.SlideMaster.CommonSlideData!.ShapeTree!);
-        var shapes = new List<IShape>(pShapeTree.Count());
-        var shapeCollection = new ShapeCollection(shapes, pShapeTree, slideObject);
-        foreach (var pShapeTreeChild in pShapeTree.OfType<OpenXmlCompositeElement>())
-        {
-            IShape? shape;
-            if (pShapeTreeChild is P.GroupShape pGroupShape)
-            {
-                shape = new SCGroupShape(pGroupShape, slideObject, shapeCollection);
-                shapes.Add(shape);
-            }
-            else if (pShapeTreeChild is P.ConnectionShape)
-            {
-                shape = new SCConnectionShape(pShapeTreeChild, slideObject, shapeCollection);
-                shapes.Add(shape);
-            }
-            else
-            {
-                shape = autoShapeCreator.Create(pShapeTreeChild, slideObject, shapeCollection);
-                if (shape != null)
-                {
-                    shapes.Add(shape);
-                }
-            }
-        }
-        
-        return shapeCollection;
-    }
-
     private int GenerateNextShapeId()
     {
-        var maxId = this.shapes.Select(shape => shape.Id).Prepend(0).Max();
+        var maxId = this.shapes.Value.Select(shape => shape.Id).Prepend(0).Max();
 
         return maxId + 1;
     }
 
-    private IAutoShapeCollection GetAutoShapes()
+    private void OnAutoShapeAdded(object sender, NewAutoShape newAutoShape)
     {
-        var autoShapes = this.shapes.OfType<IAutoShape>();
-        return new AutoShapeCollection(autoShapes, this.shapeTree, this);
+        this.pShapeTree.Append(newAutoShape.pShapeTreeChild);
+        newAutoShape.autoShape.Duplicated += this.OnAutoShapeAdded;
+        
+        this.shapes.Reset();
     }
 
     private string GenerateNextTableName()
     {
         var maxOrder = 0;
-        foreach (var shape in this.shapes)
+        foreach (var shape in this.shapes.Value)
         {
             var matchOrder = Regex.Match(shape.Name, "(?!Table )\\d+");
             if (!matchOrder.Success)
@@ -563,5 +616,39 @@ internal sealed class ShapeCollection : IShapeCollection
         }
 
         return $"Table {maxOrder + 1}";
+    }
+    
+    private List<IShape> GetShapes(AutoShapeCreator autoShapeCreator)
+    {
+        var shapesValue = new List<IShape>(this.pShapeTree.Count());
+        foreach (var pShapeTreeChild in this.pShapeTree.OfType<OpenXmlCompositeElement>())
+        {
+            IShape? shape;
+            if (pShapeTreeChild is P.GroupShape pGroupShape)
+            {
+                shape = new SCGroupShape(pGroupShape, this.ParentSlideStructure, this);
+                shapesValue.Add(shape);
+            }
+            else if (pShapeTreeChild is P.ConnectionShape)
+            {
+                shape = new SCConnectionShape(pShapeTreeChild, this.ParentSlideStructure, this);
+                shapesValue.Add(shape);
+            }
+            else
+            {
+                shape = autoShapeCreator.Create(pShapeTreeChild, this.ParentSlideStructure, this);
+                if (shape != null)
+                {
+                    shapesValue.Add(shape);
+                }
+
+                if (shape is SCAutoShape autoShape)
+                {
+                    autoShape.Duplicated += this.OnAutoShapeAdded;
+                }
+            }
+        }
+
+        return shapesValue;
     }
 }
