@@ -62,32 +62,28 @@ public interface IShapeCollection : IReadOnlyList<IShape>
     /// <param name="y">Y coordinate in pixels.</param>
     /// <param name="stream">Video stream data.</param>
     IVideoShape AddVideo(int x, int y, Stream stream);
-    
+
     /// <summary>
     ///     Adds a new Rectangle shape.
     /// </summary>
     IRectangle AddRectangle(int x, int y, int w, int h);
-    
+
     /// <summary>
     ///     Adds a new Rounded Rectangle shape. 
     /// </summary>
     IRoundedRectangle AddRoundedRectangle(int x, int y, int w, int h);
 
-#if DEBUG
-    
     /// <summary>
     ///     Adds a line from XML.
     /// </summary>
     /// <param name="xml">Content of p:cxnSp Open XML element.</param>
     ILine AddLine(string xml);
 
-#endif
-    
     /// <summary>
     ///     Adds a new line.
     /// </summary>
     ILine AddLine(int startPointX, int startPointY, int endPointX, int endPointY);
-    
+
     /// <summary>
     ///     Adds a new table.
     /// </summary>
@@ -110,7 +106,7 @@ internal sealed class ShapeCollection : IShapeCollection
         OneOf<SCSlide, SCSlideLayout, SCSlideMaster> parentSlideStructureOf)
     {
         this.ParentSlideStructure = parentSlideStructureOf;
-        
+
         var chartGrFrameHandler = new ChartGraphicFrameHandler();
         var tableGrFrameHandler = new TableGraphicFrameHandler();
         var oleGrFrameHandler = new OleGraphicFrameHandler();
@@ -138,8 +134,8 @@ internal sealed class ShapeCollection : IShapeCollection
 
     public IAudioShape AddAudio(int xPixels, int yPixels, Stream mp3Stream)
     {
-        long xEmu = UnitConverter.HorizontalPixelToEmu(xPixels);
-        long yEmu = UnitConverter.VerticalPixelToEmu(yPixels);
+        var xEmu = UnitConverter.HorizontalPixelToEmu(xPixels);
+        var yEmu = UnitConverter.VerticalPixelToEmu(yPixels);
 
         var slideBase =
             this.ParentSlideStructure.Match(slide => slide as SlideStructure, layout => layout, master => master);
@@ -148,7 +144,7 @@ internal sealed class ShapeCollection : IShapeCollection
 
         mp3Stream.Position = 0;
         mediaDataPart.FeedData(mp3Stream);
-        string imgPartRId = $"rId{Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 5)}";
+        var imgPartRId = $"rId{Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 5)}";
         var slidePart = (SlidePart)slideBase.TypedOpenXmlPart;
         var imagePart = slidePart!.AddNewPart<ImagePart>("image/png", imgPartRId);
         var imgStream = Assembly.GetExecutingAssembly().GetStream("audio-image.png");
@@ -162,9 +158,9 @@ internal sealed class ShapeCollection : IShapeCollection
 
         P.NonVisualPictureProperties nonVisualPictureProperties1 = new();
 
-        uint shapeId = (uint)this.shapes.Value.Max(sp => sp.Id) + 1;
+        var shapeId = (uint)this.shapes.Value.Max(sp => sp.Id) + 1;
         P.NonVisualDrawingProperties nonVisualDrawingProperties2 = new() { Id = shapeId, Name = $"Audio{shapeId}" };
-        A.HyperlinkOnClick hyperlinkOnClick1 = new A.HyperlinkOnClick()
+        var hyperlinkOnClick1 = new A.HyperlinkOnClick()
             { Id = string.Empty, Action = "ppaction://media" };
 
         A.NonVisualDrawingPropertiesExtensionList nonVisualDrawingPropertiesExtensionList1 = new();
@@ -172,23 +168,18 @@ internal sealed class ShapeCollection : IShapeCollection
         A.NonVisualDrawingPropertiesExtension nonVisualDrawingPropertiesExtension1 =
             new() { Uri = "{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}" };
 
-        OpenXmlUnknownElement openXmlUnknownElement1 = OpenXmlUnknownElement.CreateOpenXmlUnknownElement(
-            "<a16:creationId xmlns:a16=\"http://schemas.microsoft.com/office/drawing/2014/main\" id=\"{2FF36D28-5328-4DA3-BF85-A2B65D7EE127}\" />");
-
-        nonVisualDrawingPropertiesExtension1.Append(openXmlUnknownElement1);
-
         nonVisualDrawingPropertiesExtensionList1.Append(nonVisualDrawingPropertiesExtension1);
 
         nonVisualDrawingProperties2.Append(hyperlinkOnClick1);
         nonVisualDrawingProperties2.Append(nonVisualDrawingPropertiesExtensionList1);
 
         P.NonVisualPictureDrawingProperties nonVisualPictureDrawingProperties1 = new();
-        A.PictureLocks pictureLocks1 = new A.PictureLocks() { NoChangeAspect = true };
+        var pictureLocks1 = new A.PictureLocks() { NoChangeAspect = true };
 
         nonVisualPictureDrawingProperties1.Append(pictureLocks1);
 
         P.ApplicationNonVisualDrawingProperties applicationNonVisualDrawingProperties2 = new();
-        A.AudioFromFile audioFromFile1 = new A.AudioFromFile() { Link = audioRr.Id };
+        var audioFromFile1 = new A.AudioFromFile() { Link = audioRr.Id };
 
         P.ApplicationNonVisualDrawingPropertiesExtensionList
             applicationNonVisualDrawingPropertiesExtensionList1 = new();
@@ -196,7 +187,7 @@ internal sealed class ShapeCollection : IShapeCollection
         P.ApplicationNonVisualDrawingPropertiesExtension applicationNonVisualDrawingPropertiesExtension1 =
             new() { Uri = "{DAA4B4D4-6D71-4841-9C94-3DE7FCFB9230}" };
 
-        P14.Media media1 = new P14.Media() { Embed = mediaRr.Id };
+        var media1 = new P14.Media() { Embed = mediaRr.Id };
         media1.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
 
         applicationNonVisualDrawingPropertiesExtension1.Append(media1);
@@ -252,17 +243,17 @@ internal sealed class ShapeCollection : IShapeCollection
 
     public IVideoShape AddVideo(int x, int y, Stream stream)
     {
-        long xEmu = UnitConverter.HorizontalPixelToEmu(x);
-        long yEmu = UnitConverter.VerticalPixelToEmu(y);
+        var xEmu = UnitConverter.HorizontalPixelToEmu(x);
+        var yEmu = UnitConverter.VerticalPixelToEmu(y);
 
         var slideBase =
             this.ParentSlideStructure.Match(slide => slide as SlideStructure, layout => layout, master => master);
-        MediaDataPart mediaDataPart =
+        var mediaDataPart =
             slideBase.PresentationInternal.SDKPresentationInternal.CreateMediaDataPart("video/mp4", ".mp4");
 
         stream.Position = 0;
         mediaDataPart.FeedData(stream);
-        string imgPartRId = $"rId{Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 5)}";
+        var imgPartRId = $"rId{Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 5)}";
         var slidePart = (SlidePart)slideBase.TypedOpenXmlPart;
         var imagePart = slidePart.AddNewPart<ImagePart>("image/png", imgPartRId);
         var imageStream = Assembly.GetExecutingAssembly().GetStream("video-image.bmp");
@@ -275,9 +266,9 @@ internal sealed class ShapeCollection : IShapeCollection
 
         P.NonVisualPictureProperties nonVisualPictureProperties1 = new();
 
-        uint shapeId = (uint)this.shapes.Value.Max(sp => sp.Id) + 1;
+        var shapeId = (uint)this.shapes.Value.Max(sp => sp.Id) + 1;
         P.NonVisualDrawingProperties nonVisualDrawingProperties2 = new() { Id = shapeId, Name = $"Video{shapeId}" };
-        A.HyperlinkOnClick hyperlinkOnClick1 = new A.HyperlinkOnClick()
+        var hyperlinkOnClick1 = new A.HyperlinkOnClick()
             { Id = string.Empty, Action = "ppaction://media" };
 
         A.NonVisualDrawingPropertiesExtensionList nonVisualDrawingPropertiesExtensionList1 = new();
@@ -285,23 +276,18 @@ internal sealed class ShapeCollection : IShapeCollection
         A.NonVisualDrawingPropertiesExtension nonVisualDrawingPropertiesExtension1 =
             new() { Uri = "{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}" };
 
-        OpenXmlUnknownElement openXmlUnknownElement1 = OpenXmlUnknownElement.CreateOpenXmlUnknownElement(
-            "<a16:creationId xmlns:a16=\"http://schemas.microsoft.com/office/drawing/2014/main\" id=\"{2FF36D28-5328-4DA3-BF85-A2B65D7EE127}\" />");
-
-        nonVisualDrawingPropertiesExtension1.Append(openXmlUnknownElement1);
-
         nonVisualDrawingPropertiesExtensionList1.Append(nonVisualDrawingPropertiesExtension1);
 
         nonVisualDrawingProperties2.Append(hyperlinkOnClick1);
         nonVisualDrawingProperties2.Append(nonVisualDrawingPropertiesExtensionList1);
 
         P.NonVisualPictureDrawingProperties nonVisualPictureDrawingProperties1 = new();
-        A.PictureLocks pictureLocks1 = new A.PictureLocks() { NoChangeAspect = true };
+        var pictureLocks1 = new A.PictureLocks() { NoChangeAspect = true };
 
         nonVisualPictureDrawingProperties1.Append(pictureLocks1);
 
         P.ApplicationNonVisualDrawingProperties applicationNonVisualDrawingProperties2 = new();
-        A.VideoFromFile videoFromFile1 = new A.VideoFromFile() { Link = videoRr.Id };
+        var videoFromFile1 = new A.VideoFromFile() { Link = videoRr.Id };
 
         P.ApplicationNonVisualDrawingPropertiesExtensionList
             applicationNonVisualDrawingPropertiesExtensionList1 = new();
@@ -309,7 +295,7 @@ internal sealed class ShapeCollection : IShapeCollection
         P.ApplicationNonVisualDrawingPropertiesExtension applicationNonVisualDrawingPropertiesExtension1 =
             new() { Uri = "{DAA4B4D4-6D71-4841-9C94-3DE7FCFB9230}" };
 
-        P14.Media media1 = new P14.Media() { Embed = mediaRr.Id };
+        var media1 = new P14.Media() { Embed = mediaRr.Id };
         media1.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
 
         applicationNonVisualDrawingPropertiesExtension1.Append(media1);
@@ -369,7 +355,7 @@ internal sealed class ShapeCollection : IShapeCollection
 
         var newShape = new SCRectangle(newPShape, this.ParentSlideStructure, this);
         newShape.Outline.Color = "000000";
-        
+
         newShape.Duplicated += this.OnAutoShapeAdded;
         this.shapes.Value.Add(newShape);
         this.pShapeTree.Append(newPShape);
@@ -390,37 +376,76 @@ internal sealed class ShapeCollection : IShapeCollection
 
         return newShape;
     }
-    
+
     public ILine AddLine(string xml)
     {
         var newPConnectionShape = new ConnectionShape(xml);
-        
+
         var newShape = new SCLine(newPConnectionShape, this.ParentSlideStructure, this);
-        
+
         newShape.Duplicated += this.OnAutoShapeAdded;
         this.shapes.Value.Add(newShape);
         this.pShapeTree.Append(newPConnectionShape);
 
         return newShape;
     }
-    
+
     public ILine AddLine(int startPointX, int startPointY, int endPointX, int endPointY)
     {
-        var deltaX = endPointX - startPointX;
         var deltaY = endPointY - startPointY;
-        var cx = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+        var cx = endPointX;
 
         var cy = endPointY;
         if (deltaY == 0)
         {
             cy = 0;
         }
-            
-        var newPConnectionShape = this.CreatePConnectionShape(startPointX, startPointY, (int)cx, cy);
+
+        if (startPointX == endPointX)
+        {
+            cx = 0;
+        }
+
+        var x = startPointX;
+        var y = startPointY;
+        var flipV = false;
+        var flipH = false;
+        if (startPointX > endPointX && endPointY > startPointY)
+        {
+            x = endPointX;
+            y = startPointY;
+            cx = startPointX - endPointX;
+            cy = endPointY;
+            flipH = true;
+        }
+        else if (startPointX > endPointX && startPointY == endPointY)
+        {
+            x = startPointX;
+            cx = Math.Abs(startPointX - endPointX);
+            cy = 0;
+        }
+        else if (startPointY > endPointY)
+        {
+            y = startPointY;
+            cy = endPointY;
+            flipV = true;
+        }
+        
+        if (cx == 0)
+        {
+            flipV = true;
+        }
+
+        if(startPointX > endPointX)
+        {
+            flipH = true;
+        }
+        
+        var newPConnectionShape = this.CreatePConnectionShape(x, y, (int)cx, cy, flipH, flipV);
 
         var newShape = new SCLine(newPConnectionShape, this.ParentSlideStructure, this);
         newShape.Outline.Color = "000000";
-        
+
         newShape.Duplicated += this.OnAutoShapeAdded;
         this.shapes.Value.Add(newShape);
         this.pShapeTree.Append(newPConnectionShape);
@@ -582,7 +607,7 @@ internal sealed class ShapeCollection : IShapeCollection
     {
         return this.GetEnumerator();
     }
-     
+
     private P.Shape CreatePShape(int x, int y, int width, int height, A.ShapeTypeValues form)
     {
         var idAndName = this.GenerateIdAndName();
@@ -615,8 +640,8 @@ internal sealed class ShapeCollection : IShapeCollection
 
         return pShape;
     }
-    
-    private P.ConnectionShape CreatePConnectionShape(int xPx, int yPx, int cxPx, int cyPx)
+
+    private P.ConnectionShape CreatePConnectionShape(int xPx, int yPx, int cxPx, int cyPx, bool flipH, bool flipV)
     {
         var idAndName = this.GenerateIdAndName();
         var adjustValueList = new A.AdjustValueList();
@@ -627,27 +652,28 @@ internal sealed class ShapeCollection : IShapeCollection
         var cxEmu = UnitConverter.HorizontalPixelToEmu(cxPx);
         var cyEmu = UnitConverter.VerticalPixelToEmu(cyPx);
         var aXfrm = shapeProperties.AddAXfrm(xEmu, yEmu, cxEmu, cyEmu);
-        aXfrm.VerticalFlip = new BooleanValue(cyPx < yPx);
+        aXfrm.HorizontalFlip = new BooleanValue(flipH);
+        aXfrm.VerticalFlip = new BooleanValue(flipV);
         shapeProperties.Append(presetGeometry);
 
         var pConnectionShape = new P.ConnectionShape(
             new P.NonVisualConnectionShapeProperties(
-                new P.NonVisualDrawingProperties { Id = (uint)idAndName.Item1, Name = idAndName.Item2 }, 
-                new P.NonVisualConnectorShapeDrawingProperties(), 
+                new P.NonVisualDrawingProperties { Id = (uint)idAndName.Item1, Name = idAndName.Item2 },
+                new P.NonVisualConnectorShapeDrawingProperties(),
                 new P.ApplicationNonVisualDrawingProperties()),
             shapeProperties);
-        
+
         return pConnectionShape;
     }
-        
+
     private (int, string) GenerateIdAndName()
     {
         var maxId = 0;
-        if(this.shapes.Value.Any())
+        if (this.shapes.Value.Any())
         {
-            maxId = this.shapes.Value.Max(s => s.Id);    
+            maxId = this.shapes.Value.Max(s => s.Id);
         }
-        
+
         var maxOrder = Regex.Matches(string.Join(string.Empty, this.shapes.Value.Select(s => s.Name)), "\\d+")
 #if NETSTANDARD2_0
             .Cast<Match>()
@@ -655,10 +681,10 @@ internal sealed class ShapeCollection : IShapeCollection
             .Select(m => int.Parse(m.Value))
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return (maxId + 1, $"AutoShape {maxOrder + 1}");
     }
-    
+
     private int GenerateNextShapeId()
     {
         return this.shapes.Value.Select(shape => shape.Id).Prepend(0).Max() + 1;
@@ -668,7 +694,7 @@ internal sealed class ShapeCollection : IShapeCollection
     {
         this.pShapeTree.Append(newAutoShape.PShapeTreeChild);
         newAutoShape.AutoShape.Duplicated += this.OnAutoShapeAdded;
-        
+
         this.shapes.Reset();
     }
 
@@ -692,7 +718,7 @@ internal sealed class ShapeCollection : IShapeCollection
 
         return $"Table {maxOrder + 1}";
     }
-    
+
     private List<IShape> GetShapes(AutoShapeCreator autoShapeCreator)
     {
         var shapesValue = new List<IShape>(this.pShapeTree.Count());
