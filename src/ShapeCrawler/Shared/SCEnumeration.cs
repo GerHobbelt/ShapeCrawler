@@ -1,10 +1,9 @@
-﻿using DocumentFormat.OpenXml;
-using ShapeCrawler.Enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using DocumentFormat.OpenXml;
 
 namespace ShapeCrawler.Shared;
 
@@ -12,16 +11,16 @@ namespace ShapeCrawler.Shared;
 /// This is a generic enum.
 /// </summary>
 [DebuggerDisplay("{Name}")]
-public abstract class Enumeration
+public abstract class SCEnumeration
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Enumeration"/> class.
+    /// Initializes a new instance of the <see cref="SCEnumeration"/> class.
     /// </summary>
     /// <param name="value">Enum value.</param>
     /// <param name="name">Enum name.</param>
-    internal protected Enumeration(string value, string name)
+    protected SCEnumeration(string value, string name)
     {
-        (Value, Name) = (value, name);
+        (this.Value, this.Name) = (value, name);
     }
 
     /// <summary>
@@ -44,14 +43,17 @@ public abstract class Enumeration
 /// <summary>
 /// This is a generic enum.
 /// </summary>
-public abstract class Enumeration<T> : Enumeration, IEnumeration where T : Enumeration
+/// <typeparam name="T">Enum type.</typeparam>
+public abstract class SCEnumeration
+    <T> : SCEnumeration
+    where T : SCEnumeration
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Enumeration{T}"/> class.
+    /// Initializes a new instance of the <see cref="SCEnumeration{T}"/> class.
     /// </summary>
     /// <param name="value">Enum value.</param>
     /// <param name="name">Enum name.</param>
-    internal protected Enumeration(string value, string name)
+    protected SCEnumeration(string value, string name)
         : base(value, name)
     {
     }
@@ -60,7 +62,7 @@ public abstract class Enumeration<T> : Enumeration, IEnumeration where T : Enume
     /// Returns an enum member of <typeparamref name="T"/>.
     /// </summary>
     /// <param name="value">Enum value.</param>
-    /// <returns></returns>
+    /// <returns>An enum member.</returns>
     /// <exception cref="Exception">Throws when value doesn't exists.</exception>
     public static T Parse(string value)
     {
@@ -89,11 +91,12 @@ public abstract class Enumeration<T> : Enumeration, IEnumeration where T : Enume
     /// <summary>
     /// Try to get a type from string value.
     /// </summary>
-    /// <typeparam name="V">Value of the schema: type.</typeparam>
+    /// <typeparam name="TValue">Value of the schema: type.</typeparam>
     /// <param name="value">Enum value.</param>
     /// <param name="result">Enum member.</param>
     /// <returns>Returns <see langword="true"/> <paramref name="value"/> exists in <typeparamref name="T"/>.</returns>
-    public static bool TryParse<V>(EnumValue<V>? value, out T? result) where V : struct
+    public static bool TryParse<TValue>(EnumValue<TValue>? value, out T? result)
+        where TValue : struct
     {
         if (value is null)
         {
@@ -109,7 +112,7 @@ public abstract class Enumeration<T> : Enumeration, IEnumeration where T : Enume
     /// Gets all public and static members of type <typeparamref name="T"/>.
     /// </summary>
     /// <returns>A member list of type value.</returns>
-    protected static IEnumerable<T> GetAll() 
+    protected static IEnumerable<T> GetAll()
     {
         return typeof(T).GetFields(BindingFlags.Public |
                             BindingFlags.Static |

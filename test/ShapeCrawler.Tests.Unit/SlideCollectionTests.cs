@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using FluentAssertions;
+using NUnit.Framework;
 using ShapeCrawler.Tests.Shared;
 using ShapeCrawler.Tests.Unit.Helpers;
 using Xunit;
@@ -9,6 +12,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace ShapeCrawler.Tests.Unit;
 
+[SuppressMessage("Usage", "xUnit1013:Public method should be marked as test")]
 public class SlideCollectionTests : SCTest
 {
     [Fact]
@@ -103,6 +107,22 @@ public class SlideCollectionTests : SCTest
         errors.Should().BeEmpty();
     }
 
+    [Test]
+    public void AddEmptySlide_adds_slide_from_layout()
+    {
+        // Arrange
+        var pres = SCPresentation.Open(GetTestStream("017.pptx"));
+        var titleAndContentLayout = pres.SlideMasters[0].SlideLayouts[0];
+
+        // Act
+        var addedSlide = pres.Slides.AddEmptySlide(SCSlideLayoutType.Title);
+
+        // Assert
+        titleAndContentLayout.Type.Should().Be(SCSlideLayoutType.Title);
+        addedSlide.Should().NotBeNull();
+        titleAndContentLayout.Shapes.Select(s => s.Name).Should().BeSubsetOf(addedSlide.Shapes.Select(s => s.Name));
+    }
+
     [Fact]
     public void Slides_Insert_inserts_slide_at_the_specified_position()
     {
@@ -121,7 +141,7 @@ public class SlideCollectionTests : SCTest
         destPre.Slides[1].CustomData.Should().Be(sourceSlideId);
     }
 
-    [Theory]
+    [Xunit.Theory]
     [MemberData(nameof(TestCasesSlidesRemove))]
     public void Slides_Remove_removes_slide(string file, int expectedSlidesCount)
     {
