@@ -6,20 +6,15 @@ using Xunit;
 
 namespace ShapeCrawler.Tests;
 
-public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixture>
+public class SlideMasterTests : ShapeCrawlerTest
 {
-    private readonly PresentationFixture _fixture;
-
-    public SlideMasterTests(PresentationFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
     [Fact]
     public void ShapeXAndY_ReturnXAndYAxesCoordinatesOfTheMasterShape()
     {
         // Arrange
-        ISlideMaster slideMaster = _fixture.Pre001.SlideMasters[0];
+        var pptx = GetTestStream("001.pptx");
+        var pres = SCPresentation.Open(pptx);
+        ISlideMaster slideMaster = pres.SlideMasters[0];
         IShape shape = slideMaster.Shapes.First(sp => sp.Id == 2);
 
         // Act
@@ -35,7 +30,9 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
     public void ShapeWidthAndHeight_ReturnWidthAndHeightSizesOfTheMaster()
     {
         // Arrange
-        ISlideMaster slideMaster = _fixture.Pre001.SlideMasters[0];
+        var pptx = GetTestStream("001.pptx");
+        var pres = SCPresentation.Open(pptx);
+        ISlideMaster slideMaster = pres.SlideMasters[0];
         IShape shape = slideMaster.Shapes.First(sp => sp.Id == 2);
         float horizontalResolution = TestHelper.HorizontalResolution;
         float verticalResolution = TestHelper.VerticalResolution;
@@ -68,7 +65,8 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
     public void AutoShapePlaceholderType_ReturnsPlaceholderType()
     {
         // Arrange
-        ISlideMaster slideMaster = _fixture.Pre001.SlideMasters[0];
+        var pres1 = SCPresentation.Open(GetTestStream("001.pptx"));
+        ISlideMaster slideMaster = SCPresentation.Open(GetTestStream("001.pptx")).SlideMasters[0];
         IShape masterAutoShapeCase1 = slideMaster.Shapes.First(sp => sp.Id == 2);
         IShape masterAutoShapeCase2 = slideMaster.Shapes.First(sp => sp.Id == 8);
         IShape masterAutoShapeCase3 = slideMaster.Shapes.First(sp => sp.Id == 7);
@@ -88,7 +86,9 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
     public void ShapeGeometryType_ReturnsShapesGeometryFormType()
     {
         // Arrange
-        ISlideMaster slideMaster = _fixture.Pre001.SlideMasters[0];
+        var pptx = GetTestStream("001.pptx");
+        var pres = SCPresentation.Open(pptx);
+        ISlideMaster slideMaster = pres.SlideMasters[0];
         IShape shapeCase1 = slideMaster.Shapes.First(sp => sp.Id == 2);
         IShape shapeCase2 = slideMaster.Shapes.First(sp => sp.Id == 8);
 
@@ -105,7 +105,8 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
     public void AutoShapeTextBoxText_ReturnsText_WhenTheSlideMasterAutoShapesTextBoxIsNotEmpty()
     {
         // Arrange
-        ISlideMaster slideMaster = _fixture.Pre001.SlideMasters[0];
+        var pres1 = SCPresentation.Open(GetTestStream("001.pptx"));
+        ISlideMaster slideMaster = SCPresentation.Open(GetTestStream("001.pptx")).SlideMasters[0];
         IAutoShape autoShape = (IAutoShape)slideMaster.Shapes.First(sp => sp.Id == 8);
 
         // Act-Assert
@@ -113,7 +114,7 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
     }
 
     [Fact]
-    public void Theme_FontSettings_Head_Getter_returns_name_of_theme_heading_font()
+    public void Theme_FontScheme_HeadLatinFont_Getter_returns_font_name_for_the_Latin_characters_of_Heading()
     {
         // Arrange
         var pptx = GetTestStream("autoshape-case015.pptx");
@@ -121,14 +122,14 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
         var slideMaster = pres.SlideMasters[0];
 
         // Act
-        var headingFontName = slideMaster.Theme.FontScheme.Head;
+        var headingFontName = slideMaster.Theme.FontScheme.HeadLatinFont;
 
         // Assert
         headingFontName.Should().Be("Arial");
     }
     
     [Fact]
-    public void Theme_FontSettings_Head_Setter_sets_name_of_theme_heading_font()
+    public void Theme_FontScheme_HeadEastAsianFont_Getter_returns_font_name_for_the_EastAsian_characters_of_Heading()
     {
         // Arrange
         var pptx = GetTestStream("autoshape-case015.pptx");
@@ -136,14 +137,14 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
         var slideMaster = pres.SlideMasters[0];
 
         // Act
-        slideMaster.Theme.FontScheme.Head = "Times New Roman";
+        var fontName = slideMaster.Theme.FontScheme.HeadEastAsianFont;
 
         // Assert
-        slideMaster.Theme.FontScheme.Head.Should().Be("Times New Roman");
+        fontName.Should().Be("SimSun");
     }
     
     [Fact]
-    public void Theme_FontSettings_Body_Getter_returns_name_of_theme_body_font()
+    public void Theme_FontScheme_HeadLatinFont_Setter_sets_font_name_for_the_Latin_characters_of_heading()
     {
         // Arrange
         var pptx = GetTestStream("autoshape-case015.pptx");
@@ -151,14 +152,46 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
         var slideMaster = pres.SlideMasters[0];
 
         // Act
-        var bodyFontName = slideMaster.Theme.FontScheme.Body;
+        slideMaster.Theme.FontScheme.HeadLatinFont = "Times New Roman";
+
+        // Assert
+        slideMaster.Theme.FontScheme.HeadLatinFont.Should().Be("Times New Roman");
+    }
+    
+    [Fact]
+    public void Theme_FontScheme_HeadEastAsianFont_Setter_sets_font_for_the_East_Asian_characters_of_heading()
+    {
+        // Arrange
+        var pptx = GetTestStream("autoshape-case015.pptx");
+        var pres = SCPresentation.Open(pptx);
+        var slideMaster = pres.SlideMasters[0];
+
+        // Act
+        slideMaster.Theme.FontScheme.HeadEastAsianFont = "MingLiU-ExtB";
+
+        // Assert
+        slideMaster.Theme.FontScheme.HeadEastAsianFont.Should().Be("MingLiU-ExtB");
+        var errors = PptxValidator.Validate(pres);
+        errors.Should().BeEmpty();
+    }
+    
+    [Fact]
+    public void Theme_FontScheme_BodyLatinFont_Getter_returns_font_name_for_the_Latin_characters_of_body()
+    {
+        // Arrange
+        var pptx = GetTestStream("autoshape-case015.pptx");
+        var pres = SCPresentation.Open(pptx);
+        var slideMaster = pres.SlideMasters[0];
+
+        // Act
+        var bodyFontName = slideMaster.Theme.FontScheme.BodyLatinFont;
 
         // Assert
         bodyFontName.Should().Be("Times New Roman");
     }
     
     [Fact]
-    public void Theme_FontSettings_Body_Setter_sets_name_of_theme_body_font()
+    public void Theme_FontScheme_BodyEastAsianFont_Getter_returns_font_for_the_EastAsian_characters_of_body()
     {
         // Arrange
         var pptx = GetTestStream("autoshape-case015.pptx");
@@ -166,10 +199,40 @@ public class SlideMasterTests : ShapeCrawlerTest, IClassFixture<PresentationFixt
         var slideMaster = pres.SlideMasters[0];
 
         // Act
-        slideMaster.Theme.FontScheme.Body = "Arial";
+        var bodyFontName = slideMaster.Theme.FontScheme.BodyEastAsianFont;
 
         // Assert
-        slideMaster.Theme.FontScheme.Body.Should().Be("Arial");
+        bodyFontName.Should().Be("MingLiU-ExtB");
+    }
+    
+    [Fact]
+    public void Theme_FontScheme_BodyLatinFont_Setter_font_name_for_the_Latin_characters_of_body()
+    {
+        // Arrange
+        var pptx = GetTestStream("autoshape-case015.pptx");
+        var pres = SCPresentation.Open(pptx);
+        var slideMaster = pres.SlideMasters[0];
+
+        // Act
+        slideMaster.Theme.FontScheme.BodyLatinFont = "Arial";
+
+        // Assert
+        slideMaster.Theme.FontScheme.BodyLatinFont.Should().Be("Arial");
+    }
+    
+    [Fact]
+    public void Theme_FontScheme_BodyEastAsianFont_Setter_font_for_the_East_Asian_characters_of_body()
+    {
+        // Arrange
+        var pptx = GetTestStream("autoshape-case015.pptx");
+        var pres = SCPresentation.Open(pptx);
+        var slideMaster = pres.SlideMasters[0];
+
+        // Act
+        slideMaster.Theme.FontScheme.BodyEastAsianFont = "SimSun";
+
+        // Assert
+        slideMaster.Theme.FontScheme.BodyEastAsianFont.Should().Be("SimSun");
     }
 
     [Fact]

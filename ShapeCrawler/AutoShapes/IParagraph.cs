@@ -26,7 +26,7 @@ public interface IParagraph
     IPortionCollection Portions { get; }
 
     /// <summary>
-    ///     Gets paragraph bullet if bullet exist, otherwise <see langword="null"/>
+    ///     Gets paragraph bullet if bullet exist, otherwise <see langword="null"/>.
     /// </summary>
     SCBullet Bullet { get; }
 
@@ -44,11 +44,6 @@ public interface IParagraph
     ///     Gets spacing.
     /// </summary>
     ISpacing Spacing { get; }
-
-    /// <summary>
-    ///     Gets font.
-    /// </summary>
-    IFont Font { get; }
 
     /// <summary>
     ///     Adds new text portion in paragraph.
@@ -100,8 +95,6 @@ internal sealed class SCParagraph : IParagraph
     public int IndentLevel => this.GetIndentLevel();
 
     public ISpacing Spacing => this.GetSpacing();
-
-    public IFont Font => this.GetFont();
 
     internal TextFrame ParentTextFrame { get; }
 
@@ -198,11 +191,6 @@ internal sealed class SCParagraph : IParagraph
         {
             lastElement = lastElement.InsertAfterSelf(newARun);
         }
-    }
-    
-    private IFont GetFont()
-    {
-        throw new NotImplementedException();
     }
     
     private ISpacing GetSpacing()

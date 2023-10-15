@@ -28,17 +28,21 @@ namespace ShapeCrawler;
 [SuppressMessage("ReSharper", "InconsistentNaming", Justification = "SC — ShapeCrawler")]
 public sealed class SCPresentation : IPresentation
 {
-    private bool closed;
+    private readonly MemoryStream internalStream;
     private readonly Lazy<Dictionary<int, FontData>> paraLvlToFontData;
     private readonly Lazy<SCSlideSize> slideSize;
     private readonly ResettableLazy<SCSectionCollection> sectionCollectionLazy;
     private readonly ResettableLazy<SCSlideCollection> slideCollectionLazy;
+    private bool closed;
     private Stream? outerStream;
     private string? outerPath;
-    private readonly MemoryStream internalStream;
 
+    #region Constructors
+    
     private SCPresentation(string outerPath)
     {
+        SCLogger.Send();
+        
         this.outerPath = outerPath;
 
         ThrowIfSourceInvalid(outerPath);
@@ -59,13 +63,13 @@ public sealed class SCPresentation : IPresentation
         this.slideCollectionLazy = new ResettableLazy<SCSlideCollection>(() => new SCSlideCollection(this));
     }
 
-    private SCPresentation(Stream sourceStream)
+    private SCPresentation(Stream outerStream)
     {
-        this.outerStream = sourceStream;
-        ThrowIfSourceInvalid(sourceStream);
+        this.outerStream = outerStream;
+        ThrowIfSourceInvalid(outerStream);
 
         this.internalStream = new MemoryStream();
-        sourceStream.CopyTo(this.internalStream);
+        outerStream.CopyTo(this.internalStream);
         this.SDKPresentationInternal = PresentationDocument.Open(this.internalStream, true);
 
         this.ThrowIfSlidesNumberLarge();
@@ -79,23 +83,8 @@ public sealed class SCPresentation : IPresentation
             new ResettableLazy<SCSectionCollection>(() => SCSectionCollection.Create(this));
         this.slideCollectionLazy = new ResettableLazy<SCSlideCollection>(() => new SCSlideCollection(this));
     }
-
-    private SCPresentation(byte[] sourceBytes)
-    {
-        this.internalStream = sourceBytes.ToExpandableStream();
-        this.SDKPresentationInternal = PresentationDocument.Open(this.internalStream, true);
-
-        this.ThrowIfSlidesNumberLarge();
-        this.slideSize = new Lazy<SCSlideSize>(this.GetSlideSize);
-        this.SlideMastersValue =
-            new ResettableLazy<SlideMasterCollection>(() => SlideMasterCollection.Create(this));
-        this.paraLvlToFontData =
-            new Lazy<Dictionary<int, FontData>>(() =>
-                ParseFontHeights(this.SDKPresentationInternal.PresentationPart!.Presentation));
-        this.sectionCollectionLazy =
-            new ResettableLazy<SCSectionCollection>(() => SCSectionCollection.Create(this));
-        this.slideCollectionLazy = new ResettableLazy<SCSlideCollection>(() => new SCSlideCollection(this));
-    }
+    
+    #endregion Constructors
 
     /// <inheritdoc/>
     public ISlideCollection Slides => this.slideCollectionLazy.Value;
@@ -132,8 +121,6 @@ public sealed class SCPresentation : IPresentation
 
     internal SCSlideCollection SlidesInternal => (SCSlideCollection)this.Slides;
 
-    #region Public Methods
-
     /// <summary>
     ///     Creates a new presentation.
     /// </summary>
@@ -152,7 +139,7 @@ public sealed class SCPresentation : IPresentation
     }
 
     /// <summary>
-    ///     Opens existing presentation from specified file path.
+    ///     Opens presentation path.
     /// </summary>
     public static IPresentation Open(string pptxPath)
     {
@@ -160,17 +147,7 @@ public sealed class SCPresentation : IPresentation
     }
 
     /// <summary>
-    ///     Opens presentation from specified byte array.
-    /// </summary>
-    public static IPresentation Open(byte[] pptxBytes)
-    {
-        ThrowIfSourceInvalid(pptxBytes);
-
-        return new SCPresentation(pptxBytes);
-    }
-
-    /// <summary>
-    ///     Opens presentation from specified stream.
+    ///     Opens presentation stream.
     /// </summary>
     public static IPresentation Open(Stream pptxStream)
     {
@@ -233,8 +210,6 @@ public sealed class SCPresentation : IPresentation
         this.Close();
     }
 
-    #endregion Public Methods
-
     private static void CreatePresentationParts(PresentationPart presPart)
     {
         var slideMasterIdList = new P.SlideMasterIdList(new P.SlideMasterId
@@ -267,7 +242,7 @@ public sealed class SCPresentation : IPresentation
         var slideLayout = new P.SlideLayout(
             new P.CommonSlideData(new P.ShapeTree(
                 new P.NonVisualGroupShapeProperties(
-                    new P.NonVisualDrawingProperties { Id = (UInt32Value)1U, Name = "" },
+                    new P.NonVisualDrawingProperties { Id = (UInt32Value)1U, Name = string.Empty },
                     new P.NonVisualGroupShapeDrawingProperties(),
                     new P.ApplicationNonVisualDrawingProperties()),
                 new P.GroupShapeProperties(new A.TransformGroup()))),
@@ -283,7 +258,7 @@ public sealed class SCPresentation : IPresentation
         var slideMaster = new P.SlideMaster(
             new P.CommonSlideData(new P.ShapeTree(
                 new P.NonVisualGroupShapeProperties(
-                    new P.NonVisualDrawingProperties { Id = (UInt32Value)1U, Name = "" },
+                    new P.NonVisualDrawingProperties { Id = (UInt32Value)1U, Name = string.Empty },
                     new P.NonVisualGroupShapeDrawingProperties(),
                     new P.ApplicationNonVisualDrawingProperties()),
                 new P.GroupShapeProperties(new A.TransformGroup()),
@@ -336,27 +311,30 @@ public sealed class SCPresentation : IPresentation
             new A.FontScheme(
                 new A.MajorFont(
                     new A.LatinFont() { Typeface = "Calibri" },
-                    new A.EastAsianFont() { Typeface = "" },
-                    new A.ComplexScriptFont() { Typeface = "" }),
+                    new A.EastAsianFont() { Typeface = string.Empty },
+                    new A.ComplexScriptFont() { Typeface = string.Empty }),
                 new A.MinorFont(
                     new A.LatinFont() { Typeface = "Calibri" },
-                    new A.EastAsianFont() { Typeface = "" },
-                    new A.ComplexScriptFont() { Typeface = "" })) { Name = "Office" },
+                    new A.EastAsianFont() { Typeface = string.Empty },
+                    new A.ComplexScriptFont() { Typeface = string.Empty })) { Name = "Office" },
             new A.FormatScheme(
                 new A.FillStyleList(
                     new A.SolidFill(new A.SchemeColor() { Val = A.SchemeColorValues.PhColor }),
                     new A.GradientFill(
                         new A.GradientStopList(
-                            new A.GradientStop(new A.SchemeColor(new A.Tint() { Val = 50000 },
-                                        new A.SaturationModulation() { Val = 300000 })
+                            new A.GradientStop(new A.SchemeColor(
+                                new A.Tint() { Val = 50000 },
+                                new A.SaturationModulation() { Val = 300000 })
                                     { Val = A.SchemeColorValues.PhColor })
                                 { Position = 0 },
-                            new A.GradientStop(new A.SchemeColor(new A.Tint() { Val = 37000 },
-                                        new A.SaturationModulation() { Val = 300000 })
+                            new A.GradientStop(new A.SchemeColor(
+                                new A.Tint() { Val = 37000 },
+                                new A.SaturationModulation() { Val = 300000 })
                                     { Val = A.SchemeColorValues.PhColor })
                                 { Position = 35000 },
-                            new A.GradientStop(new A.SchemeColor(new A.Tint() { Val = 15000 },
-                                        new A.SaturationModulation() { Val = 350000 })
+                            new A.GradientStop(new A.SchemeColor(
+                                new A.Tint() { Val = 15000 },
+                                new A.SaturationModulation() { Val = 350000 })
                                     { Val = A.SchemeColorValues.PhColor })
                                 { Position = 100000 }),
                         new A.LinearGradientFill() { Angle = 16200000, Scaled = true }),
@@ -430,27 +408,32 @@ public sealed class SCPresentation : IPresentation
                     new A.GradientFill(
                         new A.GradientStopList(
                             new A.GradientStop(
-                                new A.SchemeColor(new A.Tint() { Val = 50000 },
-                                        new A.SaturationModulation() { Val = 300000 })
+                                new A.SchemeColor(
+                                    new A.Tint() { Val = 50000 },
+                                    new A.SaturationModulation() { Val = 300000 })
                                     { Val = A.SchemeColorValues.PhColor }) { Position = 0 },
                             new A.GradientStop(
-                                new A.SchemeColor(new A.Tint() { Val = 50000 },
-                                        new A.SaturationModulation() { Val = 300000 })
+                                new A.SchemeColor(
+                                    new A.Tint() { Val = 50000 },
+                                    new A.SaturationModulation() { Val = 300000 })
                                     { Val = A.SchemeColorValues.PhColor }) { Position = 0 },
                             new A.GradientStop(
-                                new A.SchemeColor(new A.Tint() { Val = 50000 },
-                                        new A.SaturationModulation() { Val = 300000 })
+                                new A.SchemeColor(
+                                    new A.Tint() { Val = 50000 },
+                                    new A.SaturationModulation() { Val = 300000 })
                                     { Val = A.SchemeColorValues.PhColor }) { Position = 0 }),
                         new A.LinearGradientFill() { Angle = 16200000, Scaled = true }),
                     new A.GradientFill(
                         new A.GradientStopList(
                             new A.GradientStop(
-                                new A.SchemeColor(new A.Tint() { Val = 50000 },
-                                        new A.SaturationModulation() { Val = 300000 })
+                                new A.SchemeColor(
+                                    new A.Tint() { Val = 50000 },
+                                    new A.SaturationModulation() { Val = 300000 })
                                     { Val = A.SchemeColorValues.PhColor }) { Position = 0 },
                             new A.GradientStop(
-                                new A.SchemeColor(new A.Tint() { Val = 50000 },
-                                        new A.SaturationModulation() { Val = 300000 })
+                                new A.SchemeColor(
+                                    new A.Tint() { Val = 50000 },
+                                    new A.SaturationModulation() { Val = 300000 })
                                     { Val = A.SchemeColorValues.PhColor }) { Position = 0 }),
                         new A.LinearGradientFill() { Angle = 16200000, Scaled = true }))) { Name = "Office" });
 
