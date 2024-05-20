@@ -128,14 +128,44 @@ internal sealed class SlideShapes : ISlideShapes
 
         if (skBitmap != null)
         {
+            var height = skBitmap.Height;
+            var width = skBitmap.Width;
+            var resize = false;
+
+            if (height > 500)
+            {
+                height = 500;
+                width = (int)(height * skBitmap.Width / (decimal)skBitmap.Height);
+                resize = true;
+            }
+
+            if (width > 500)
+            {
+                width = 500;
+                height = (int)(width * skBitmap.Height / (decimal)skBitmap.Width);
+                resize = true;
+            }
+
             var xEmu = UnitConverter.HorizontalPixelToEmu(100);
             var yEmu = UnitConverter.VerticalPixelToEmu(100);
-            var cxEmu = UnitConverter.HorizontalPixelToEmu(skBitmap.Width);
-            var cyEmu = UnitConverter.VerticalPixelToEmu(skBitmap.Height);
+            var cxEmu = UnitConverter.HorizontalPixelToEmu(width);
+            var cyEmu = UnitConverter.VerticalPixelToEmu(height);
 
-            var pPicture = this.CreatePPicture(imageStream, "Picture");
+            P.Picture? pPicture;
+            if (resize)
+            {
+                skBitmap.Resize(new SKSizeI(width:width, height:height), SKFilterQuality.High);
+                var resizedStream = new MemoryStream();
+                skBitmap.Encode(resizedStream, SKEncodedImageFormat.Png, 95);
+                resizedStream.Position = 0;
+                pPicture = this.CreatePPicture(resizedStream, "Picture");
+            }
+            else
+            {
+                pPicture = this.CreatePPicture(imageStream, "Picture");
+            }
 
-            var transform2D = pPicture.ShapeProperties!.Transform2D!;
+            var transform2D = pPicture!.ShapeProperties!.Transform2D!;
             transform2D.Offset!.X = xEmu;
             transform2D.Offset!.Y = yEmu;
             transform2D.Extents!.Cx = cxEmu;
@@ -152,7 +182,7 @@ internal sealed class SlideShapes : ISlideShapes
             catch
             {
                 // Neither bitmap nor svg can load this, so that's an error.
-                throw new ArgumentException("Unable to decode image from supplied stream", nameof(imageStream));
+                throw new SCException("Unable to decode image from supplied stream");
             }
 
             // Add it
@@ -565,6 +595,23 @@ internal sealed class SlideShapes : ISlideShapes
         var width = (int)image.Width.ToDeviceValue(renderer, Svg.UnitRenderingType.Horizontal, image);
         var height = (int)image.Height.ToDeviceValue(renderer, Svg.UnitRenderingType.Vertical, image);
 
+        // Ensure image size is not inserted at an unreasonable size
+        // See Issue #683 Large-dimension SVG files lead to error opening in PowerPoint
+        //
+        // Ideally, we'd want to use the slide dimensions itself. However, not sure how we get that
+        // here, so will use a fixed "safe" size
+        if (height > 500)
+        {
+            height = 500;
+            width = (int)(height * image.Width.Value / image.Height.Value);
+        }
+        
+        if (width > 500)
+        {
+            width = 500;
+            height = (int)(width * image.Height.Value / image.Width.Value);
+        }
+
         // Rasterize image at intrinsic size
         var bitmap = image.Draw(width, height);
         var rasterStream = new MemoryStream();
@@ -627,14 +674,14 @@ internal sealed class SlideShapes : ISlideShapes
 
         a16CreationId.Id = "{2BEA8DB4-11C1-B7BA-06ED-DC504E2BBEBE}";
 
-        aNonVisualDrawingPropertiesExtension.Append(a16CreationId);
+        aNonVisualDrawingPropertiesExtension.AppendChild(a16CreationId);
 
-        aNonVisualDrawingPropertiesExtensionList.Append(aNonVisualDrawingPropertiesExtension);
+        aNonVisualDrawingPropertiesExtensionList.AppendChild(aNonVisualDrawingPropertiesExtension);
 
-        nonVisualDrawingProperties.Append(aNonVisualDrawingPropertiesExtensionList);
-        nonVisualPictureProperties.Append(nonVisualDrawingProperties);
-        nonVisualPictureProperties.Append(nonVisualPictureDrawingProperties);
-        nonVisualPictureProperties.Append(appNonVisualDrawingProperties);
+        nonVisualDrawingProperties.AppendChild(aNonVisualDrawingPropertiesExtensionList);
+        nonVisualPictureProperties.AppendChild(nonVisualDrawingProperties);
+        nonVisualPictureProperties.AppendChild(nonVisualPictureDrawingProperties);
+        nonVisualPictureProperties.AppendChild(appNonVisualDrawingProperties);
 
         var blipFill = new P.BlipFill();
 
@@ -654,9 +701,9 @@ internal sealed class SlideShapes : ISlideShapes
 
         a14UseLocalDpi.Val = false;
 
-        aBlipExtension.Append(a14UseLocalDpi);
+        aBlipExtension.AppendChild(a14UseLocalDpi);
 
-        aBlipExtensionList.Append(aBlipExtension);
+        aBlipExtensionList.AppendChild(aBlipExtension);
 
         aBlipExtension = new A.BlipExtension();
         aBlipExtension.Uri = "{96DAC541-7B7A-43D3-8B79-37D633B846F1}";
@@ -668,21 +715,21 @@ internal sealed class SlideShapes : ISlideShapes
 
         sVGBlip.AddNamespaceDeclaration(nameof(asvg), asvg.NamespaceName);
 
-        aBlipExtension.Append(sVGBlip);
+        aBlipExtension.AppendChild(sVGBlip);
 
-        aBlipExtensionList.Append(aBlipExtension);
+        aBlipExtensionList.AppendChild(aBlipExtension);
 
-        aBlip.Append(aBlipExtensionList);
+        aBlip.AppendChild(aBlipExtensionList);
 
-        blipFill.Append(aBlip);
+        blipFill.AppendChild(aBlip);
 
         A.Stretch aStretch = new A.Stretch();
 
         A.FillRectangle aFillRectangle = new A.FillRectangle();
 
-        aStretch.Append(aFillRectangle);
+        aStretch.AppendChild(aFillRectangle);
 
-        blipFill.Append(aStretch);
+        blipFill.AppendChild(aStretch);
 
         var transform2D = new A.Transform2D(
             new A.Offset { X = 0, Y = 0 },
@@ -693,18 +740,18 @@ internal sealed class SlideShapes : ISlideShapes
 
         A.AdjustValueList aAdjustValueList = new A.AdjustValueList();
 
-        presetGeometry.Append(aAdjustValueList);
+        presetGeometry.AppendChild(aAdjustValueList);
 
         var shapeProperties = new P.ShapeProperties();
-        shapeProperties.Append(transform2D);
-        shapeProperties.Append(presetGeometry);
+        shapeProperties.AppendChild(transform2D);
+        shapeProperties.AppendChild(presetGeometry);
 
         var pPicture = new P.Picture();
-        pPicture.Append(nonVisualPictureProperties);
-        pPicture.Append(blipFill);
-        pPicture.Append(shapeProperties);
+        pPicture.AppendChild(nonVisualPictureProperties);
+        pPicture.AppendChild(blipFill);
+        pPicture.AppendChild(shapeProperties);
 
-        this.sdkSlidePart.Slide.CommonSlideData!.ShapeTree!.Append(pPicture);
+        this.sdkSlidePart.Slide.CommonSlideData!.ShapeTree!.AppendChild(pPicture);
 
         return pPicture;
     }
