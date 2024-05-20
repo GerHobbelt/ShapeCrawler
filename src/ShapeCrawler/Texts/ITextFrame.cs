@@ -1,7 +1,4 @@
 ﻿// ReSharper disable CheckNamespace
-
-using ShapeCrawler.Texts;
-
 namespace ShapeCrawler;
 
 /// <summary>
@@ -48,4 +45,9 @@ public interface ITextFrame
     ///     Gets a value indicating whether text is wrapped in shape.
     /// </summary>
     bool TextWrapped { get; }
+    
+    /// <summary>
+    ///     Gets XPath.
+    /// </summary>
+    public string SDKXPath { get; }
 }

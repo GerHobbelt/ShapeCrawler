@@ -7,6 +7,7 @@ using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
 using ShapeCrawler.Placeholders;
 using ShapeCrawler.Shapes;
+using ShapeCrawler.Texts;
 using P = DocumentFormat.OpenXml.Presentation;
 using Position = ShapeCrawler.Positions.Position;
 
@@ -14,13 +15,12 @@ namespace ShapeCrawler.ShapeCollection;
 
 internal abstract class Shape : IShape
 {
+    protected readonly TypedOpenXmlPart sdkTypedOpenXmlPart;
+    protected readonly OpenXmlElement pShapeTreeElement;
+    private const string customDataElementName = "ctd";
     private readonly Position position;
     private readonly ShapeSize size;
     private readonly ShapeId shapeId;
-    private const string customDataElementName = "ctd";
-
-    protected readonly TypedOpenXmlPart sdkTypedOpenXmlPart;
-    protected readonly OpenXmlElement pShapeTreeElement;
 
     internal Shape(TypedOpenXmlPart sdkTypedOpenXmlPart, OpenXmlElement pShapeTreeElement)
     {
@@ -126,7 +126,7 @@ internal abstract class Shape : IShape
             const string pattern = @$"<{customDataElementName}>(.*)<\/{customDataElementName}>";
 
 #if NETSTANDARD2_0
-        var regex = new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(100));
+            var regex = new Regex(pattern, RegexOptions.None, TimeSpan.FromSeconds(100));
 #else
             var regex = new Regex(pattern, RegexOptions.NonBacktracking);
 #endif
@@ -139,6 +139,7 @@ internal abstract class Shape : IShape
 
             return elementText.Value;
         }
+        
         set
         {
             var customDataElement =
@@ -148,6 +149,7 @@ internal abstract class Shape : IShape
     }
 
     public abstract ShapeType ShapeType { get; }
+    
     public virtual bool HasOutline => false;
 
     public virtual IShapeOutline Outline => throw new SCException(
@@ -160,6 +162,7 @@ internal abstract class Shape : IShape
             $"Shape does not have fill. Use {nameof(IShape.HasFill)} property to check if the shape has fill.");
 
     public virtual bool IsTextHolder { get; protected init; }
+    
     public virtual ITextFrame TextFrame { get; protected init; } = new NullTextFrame();
 
     public virtual double Rotation
@@ -180,14 +183,16 @@ internal abstract class Shape : IShape
         }
     }
 
+    public virtual bool Removeable => false;
+    
+    public string SDKXPath => new XmlPath(this.pShapeTreeElement).XPath;
+    
     public virtual ITable AsTable() => throw new SCException(
         $"The shape is not a table. Use {nameof(IShape.ShapeType)} property to check if the shape is a table.");
 
     public virtual IMediaShape AsMedia() =>
         throw new SCException(
             $"The shape is not a media shape. Use {nameof(IShape.ShapeType)} property to check if the shape is a media (audio, video, etc.");
-
-    public virtual bool Removeable => false;
-
+    
     public virtual void Remove() => this.pShapeTreeElement.Remove();
 }

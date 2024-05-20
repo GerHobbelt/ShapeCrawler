@@ -2,6 +2,8 @@
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using ShapeCrawler.Placeholders;
+using ShapeCrawler.ShapeCollection;
 using ShapeCrawler.Texts;
 using ShapeCrawler.Wrappers;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -50,6 +52,9 @@ public interface IParagraph
     /// </summary>
     void ReplaceText(string oldValue, string newValue);
 
+    /// <summary>
+    ///     Removes paragraph.
+    /// </summary>
     void Remove();
 }
 
@@ -57,8 +62,9 @@ internal sealed class Paragraph : IParagraph
 {
     private readonly TypedOpenXmlPart sdkTypedOpenXmlPart;
     private readonly Lazy<Bullet> bullet;
-    private TextAlignment? alignment;
     private readonly AParagraphWrap aParagraphWrap;
+
+    private TextAlignment? alignment;
 
     internal Paragraph(TypedOpenXmlPart sdkTypedOpenXmlPart, A.Paragraph aParagraph)
         : this(sdkTypedOpenXmlPart, aParagraph, new AParagraphWrap(aParagraph))
@@ -88,14 +94,14 @@ internal sealed class Paragraph : IParagraph
             }
 
             // To set a paragraph text we use a single portion which is the first paragraph portion.
-            var baseARun = this.AParagraph.GetFirstChild<A.Run>()!;
+            var baseARun = this.AParagraph.GetFirstChild<A.Run>() !;
             foreach (var removingRun in this.AParagraph.OfType<A.Run>().Where(run => run != baseARun))
             {
                 removingRun.Remove();
             }
 
 #if NETSTANDARD2_0
-        var textLines = text.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            var textLines = value.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
 #else
             var textLines = value.Split(Environment.NewLine);
 #endif
@@ -129,7 +135,33 @@ internal sealed class Paragraph : IParagraph
 
     public TextAlignment Alignment
     {
-        get => this.ParseAlignment();
+        get
+        {
+            if (this.alignment.HasValue)
+            {
+                return this.alignment.Value;
+            }
+
+            var aTextAlignmentType = this.AParagraph.ParagraphProperties?.Alignment;
+            if (aTextAlignmentType == null)
+            {
+                var parentShape = new AutoShape(this.sdkTypedOpenXmlPart, this.AParagraph.Ancestors<P.Shape>().First());
+                if (parentShape.PlaceholderType == PlaceholderType.CenteredTitle)
+                {
+                    return TextAlignment.Center;
+                }
+            }
+
+            this.alignment = aTextAlignmentType!.Value switch
+            {
+                A.TextAlignmentTypeValues.Center => TextAlignment.Center,
+                A.TextAlignmentTypeValues.Right => TextAlignment.Right,
+                A.TextAlignmentTypeValues.Justified => TextAlignment.Justify,
+                _ => TextAlignment.Left
+            };
+
+            return this.alignment.Value;
+        }
         set => this.SetAlignment(value);
     }
 
@@ -140,6 +172,7 @@ internal sealed class Paragraph : IParagraph
     }
 
     public ISpacing Spacing => this.GetSpacing();
+    
     internal A.Paragraph AParagraph { get; }
 
     public void SetFontSize(int fontSize)
@@ -164,6 +197,7 @@ internal sealed class Paragraph : IParagraph
     }
 
     public void Remove() => this.AParagraph.Remove();
+    
     private ISpacing GetSpacing() => new Spacing(this, this.AParagraph);
 
     private Bullet GetBullet() => new Bullet(this.AParagraph.ParagraphProperties!);
@@ -203,29 +237,5 @@ internal sealed class Paragraph : IParagraph
         }
 
         this.alignment = alignmentValue;
-    }
-
-    private TextAlignment ParseAlignment()
-    {
-        if (this.alignment.HasValue)
-        {
-            return this.alignment.Value;
-        }
-
-        var aTextAlignmentType = this.AParagraph.ParagraphProperties?.Alignment!;
-        if (aTextAlignmentType == null)
-        {
-            return TextAlignment.Left;
-        }
-
-        this.alignment = aTextAlignmentType.Value switch
-        {
-            A.TextAlignmentTypeValues.Center => TextAlignment.Center,
-            A.TextAlignmentTypeValues.Right => TextAlignment.Right,
-            A.TextAlignmentTypeValues.Justified => TextAlignment.Justify,
-            _ => TextAlignment.Left
-        };
-
-        return this.alignment.Value;
     }
 }

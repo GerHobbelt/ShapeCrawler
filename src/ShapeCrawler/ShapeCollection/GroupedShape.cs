@@ -21,7 +21,19 @@ internal sealed class GroupedShape : IShape
 
     public int X
     {
-        get => this.decoratedShape.X;
+        get
+        {
+            var pGroupShape = this.pShape.Ancestors<P.GroupShape>().First();
+            var aTransformGroup = pGroupShape.GroupShapeProperties!.TransformGroup!;
+            var aOffset = aTransformGroup.Offset!;
+            
+            var xGroupShapeEmu = UnitConverter.HorizontalEmuToPixel(aOffset.X!);
+            var groupShapeChildX = UnitConverter.HorizontalEmuToPixel(pGroupShape.GroupShapeProperties!.TransformGroup!.ChildOffset!.X!.Value);
+            var groupedShapeX = this.decoratedShape.X;
+            
+            return xGroupShapeEmu - (groupShapeChildX - groupedShapeX);
+        }
+        
         set
         {
             this.decoratedShape.X = value;
@@ -110,9 +122,13 @@ internal sealed class GroupedShape : IShape
     public int Id => this.decoratedShape.Id;
 
     public string Name => this.decoratedShape.Name;
+    
     public bool Hidden => this.decoratedShape.Hidden;
+    
     public bool IsPlaceholder => this.decoratedShape.IsPlaceholder;
+    
     public PlaceholderType PlaceholderType => this.decoratedShape.PlaceholderType;
+   
     public Geometry GeometryType => this.decoratedShape.GeometryType;
 
     public string? CustomData
@@ -122,17 +138,30 @@ internal sealed class GroupedShape : IShape
     }
 
     public ShapeType ShapeType => this.decoratedShape.ShapeType;
+    
     public bool HasOutline => this.decoratedShape.HasOutline;
+    
     public IShapeOutline Outline => this.decoratedShape.Outline;
+    
     public bool HasFill => this.decoratedShape.HasFill;
+    
     public IShapeFill Fill => this.decoratedShape.Fill;
+    
     public bool IsTextHolder => this.decoratedShape.IsTextHolder;
+    
     public ITextFrame TextFrame => this.decoratedShape.TextFrame;
+    
     public double Rotation => this.decoratedShape.Rotation;
-    public ITable AsTable() => this.decoratedShape.AsTable();
-    public IMediaShape AsMedia() => this.decoratedShape.AsMedia();
+    
     public bool Removeable => this.decoratedShape.Removeable;
+    
+    public string SDKXPath => this.decoratedShape.SDKXPath;
+    
     public void Remove() => this.decoratedShape.Remove();
+    
+    public ITable AsTable() => this.decoratedShape.AsTable();
+    
+    public IMediaShape AsMedia() => this.decoratedShape.AsMedia();
 
     #endregion Decorated Shape
 }

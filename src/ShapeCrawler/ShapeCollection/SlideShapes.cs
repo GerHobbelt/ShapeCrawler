@@ -10,14 +10,13 @@ using DocumentFormat.OpenXml.Packaging;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
 using ShapeCrawler.Services;
-using ShapeCrawler.ShapeCollection;
 using ShapeCrawler.Shared;
 using SkiaSharp;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using Position = ShapeCrawler.Positions.Position;
 
-namespace ShapeCrawler.Shapes;
+namespace ShapeCrawler.ShapeCollection;
 
 internal sealed class SlideShapes : ISlideShapes
 {
@@ -31,6 +30,10 @@ internal sealed class SlideShapes : ISlideShapes
         this.shapes = shapes;
     }
 
+    public int Count => this.shapes.Count;
+    
+    public IShape this[int index] => this.shapes[index];
+    
     public void Add(IShape addingShape)
     {
         var pShapeTree = this.sdkSlidePart.Slide.CommonSlideData!.ShapeTree!;
@@ -358,12 +361,12 @@ internal sealed class SlideShapes : ISlideShapes
         aXfrm.VerticalFlip = new BooleanValue(flipV);
     }
 
-    public void AddTable(int xPx, int yPx, int columns, int rows)
+    public void AddTable(int x, int y, int columnsCount, int rowsCount)
     {
         var shapeName = this.GenerateNextTableName();
-        var xEmu = UnitConverter.HorizontalPixelToEmu(xPx);
-        var yEmu = UnitConverter.VerticalPixelToEmu(yPx);
-        var tableHeightEmu = Constants.DefaultRowHeightEmu * rows;
+        var xEmu = UnitConverter.HorizontalPixelToEmu(x);
+        var yEmu = UnitConverter.VerticalPixelToEmu(y);
+        var tableHeightEmu = Constants.DefaultRowHeightEmu * rowsCount;
 
         var graphicFrame = new P.GraphicFrame();
         var nonVisualGraphicFrameProperties = new P.NonVisualGraphicFrameProperties();
@@ -389,8 +392,8 @@ internal sealed class SlideShapes : ISlideShapes
         tableProperties.Append(tableStyleId);
 
         var tableGrid = new A.TableGrid();
-        var gridWidthEmu = DefaultTableWidthEmu / columns;
-        for (var i = 0; i < columns; i++)
+        var gridWidthEmu = DefaultTableWidthEmu / columnsCount;
+        for (var i = 0; i < columnsCount; i++)
         {
             var gridColumn = new A.GridColumn { Width = gridWidthEmu };
             tableGrid.Append(gridColumn);
@@ -398,9 +401,9 @@ internal sealed class SlideShapes : ISlideShapes
 
         aTable.Append(tableProperties);
         aTable.Append(tableGrid);
-        for (var i = 0; i < rows; i++)
+        for (var i = 0; i < rowsCount; i++)
         {
-            aTable.AddRow(columns);
+            aTable.AddRow(columnsCount);
         }
 
         graphicData.Append(aTable);
@@ -426,11 +429,13 @@ internal sealed class SlideShapes : ISlideShapes
 
         throw new SCException("Shape is not cannot be removed.");
     }
-    public int Count => this.shapes.Count;
-    public IShape this[int index] => this.shapes[index];
+    
     public T GetById<T>(int id) where T : IShape => this.shapes.GetById<T>(id);
+    
     public T GetByName<T>(string name) where T : IShape => this.shapes.GetByName<T>(name);
+    
     public IShape GetByName(string name) => this.shapes.GetByName(name);
+    
     public IEnumerator<IShape> GetEnumerator() => this.shapes.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
@@ -444,8 +449,7 @@ internal sealed class SlideShapes : ISlideShapes
             maxId = shapes.Max(s => s.Id);
         }
 
-        var maxOrder = Regex.Matches(string.Join(string.Empty, shapes.Select(s => s.Name)), "\\d+",
-                RegexOptions.None, TimeSpan.FromSeconds(100))
+        var maxOrder = Regex.Matches(string.Join(string.Empty, shapes.Select(s => s.Name)), "\\d+", RegexOptions.None, TimeSpan.FromSeconds(100))
 
 #if NETSTANDARD2_0
             .Cast<Match>()

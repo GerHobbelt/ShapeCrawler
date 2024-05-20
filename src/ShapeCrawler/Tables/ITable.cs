@@ -4,12 +4,10 @@ using System.Linq;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using ShapeCrawler.Drawing;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
 using ShapeCrawler.ShapeCollection;
 using ShapeCrawler.Shapes;
-using ShapeCrawler.Shared;
 using SkiaSharp;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -47,6 +45,9 @@ public interface ITable : IShape
     /// </summary>
     void RemoveColumnAt(int columnIndex);
 
+    /// <summary>
+    ///     Updates table fill.
+    /// </summary>
     void UpdateFill(string colorHex);
 }
 
@@ -62,8 +63,12 @@ internal sealed class Table : CopyableShape, ITable
     }
 
     public override ShapeType ShapeType => ShapeType.Table;
+    
     public IReadOnlyList<IColumn> Columns => this.GetColumnList(); // TODO: make lazy
+    
     public ITableRows Rows { get; }
+    
+    public override bool Removeable => true;
 
     public override Geometry GeometryType => Geometry.Rectangle;
 
@@ -90,19 +95,19 @@ internal sealed class Table : CopyableShape, ITable
         throw new NotImplementedException();
     }
 
-    public void MergeCells(ITableCell inputCell1, ITableCell inputCell2)
+    public void MergeCells(ITableCell cell1, ITableCell cell2)
     {
-        var cell1 = (TableCell)inputCell1;
-        var cell2 = (TableCell)inputCell2;
-        if (cell1 == cell2)
+        var cell1Internal = (TableCell)cell1;
+        var cell2Internal = (TableCell)cell2;
+        if (cell1Internal == cell2Internal)
         {
             throw new SCException("Cannot merge the same cells.");
         }
 
-        var minRowIndex = cell1.RowIndex < cell2.RowIndex ? cell1.RowIndex : cell2.RowIndex;
-        var maxRowIndex = cell1.RowIndex > cell2.RowIndex ? cell1.RowIndex : cell2.RowIndex;
-        var minColIndex = cell1.ColumnIndex < cell2.ColumnIndex ? cell1.ColumnIndex : cell2.ColumnIndex;
-        var maxColIndex = cell1.ColumnIndex > cell2.ColumnIndex ? cell1.ColumnIndex : cell2.ColumnIndex;
+        var minRowIndex = cell1Internal.RowIndex < cell2Internal.RowIndex ? cell1Internal.RowIndex : cell2Internal.RowIndex;
+        var maxRowIndex = cell1Internal.RowIndex > cell2Internal.RowIndex ? cell1Internal.RowIndex : cell2Internal.RowIndex;
+        var minColIndex = cell1Internal.ColumnIndex < cell2Internal.ColumnIndex ? cell1Internal.ColumnIndex : cell2Internal.ColumnIndex;
+        var maxColIndex = cell1Internal.ColumnIndex > cell2Internal.ColumnIndex ? cell1Internal.ColumnIndex : cell2Internal.ColumnIndex;
 
         var aTableRows = this.ATable.Elements<A.TableRow>().ToList();
         if (minColIndex != maxColIndex)
@@ -119,6 +124,8 @@ internal sealed class Table : CopyableShape, ITable
         this.RemoveRowIfNeeded();
     }
 
+    public override void Remove() => this.pGraphicFrame.Remove();
+    
     internal void Draw(SKCanvas canvas)
     {
         throw new NotImplementedException();
@@ -278,7 +285,7 @@ internal sealed class Table : CopyableShape, ITable
                 // Delete a:tc elements
                 foreach (var aTblRow in aTableRows)
                 {
-                    var removeCells = aTblRow.Elements<A.TableCell>().Skip(colIdx+1).Take(deleteColumnCount).ToList();
+                    var removeCells = aTblRow.Elements<A.TableCell>().Skip(colIdx + 1).Take(deleteColumnCount).ToList();
                     foreach (var aTblCell in removeCells)
                     {
                         aTblCell.Remove();
@@ -293,7 +300,4 @@ internal sealed class Table : CopyableShape, ITable
             }
         }
     }
-    
-    public override bool Removeable => true;
-    public override void Remove() => this.pGraphicFrame.Remove();
 }

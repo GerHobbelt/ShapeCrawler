@@ -64,7 +64,7 @@ public interface IShape : IPosition
     ShapeType ShapeType { get; }
     
     /// <summary>
-    ///     Gets value indicating whether the shape has outline formatting.
+    ///     Gets a value indicating whether the shape has outline formatting.
     /// </summary>
     bool HasOutline { get; }
     
@@ -74,7 +74,7 @@ public interface IShape : IPosition
     IShapeOutline Outline { get; }
  
     /// <summary>
-    ///     Gets value indicating whether the shape has fill.
+    ///     Gets a value indicating whether the shape has fill.
     /// </summary>
     bool HasFill { get; }
     
@@ -84,13 +84,12 @@ public interface IShape : IPosition
     IShapeFill Fill { get; }
     
     /// <summary>
-    ///     Gets value indicating whether the AutoShape is a text holder.
+    ///     Gets a value indicating whether the AutoShape is a text holder.
     /// </summary>
-    /// <returns></returns>
     bool IsTextHolder { get; }
     
     /// <summary>
-    ///     Text Frame.
+    ///     Gets Text Frame.
     /// </summary>
     ITextFrame TextFrame { get; }
     
@@ -98,27 +97,30 @@ public interface IShape : IPosition
     ///     Gets the rotation of the shape in degrees.
     /// </summary>
     double Rotation { get; }
-
+    
+    /// <summary>
+    ///     Gets a value indicating whether the shape can be removed.
+    /// </summary>
+    bool Removeable { get; }
+    
+    /// <summary>
+    ///     Gets XPath.
+    /// </summary>
+    public string SDKXPath { get; }
+    
+    /// <summary>
+    ///     Removes the shape from the slide.
+    /// </summary>
+    void Remove();
+    
     /// <summary>
     ///     Gets the table if the shape is a table. Use <see cref="IShape.ShapeType"/> property to check if the shape is a table.
     /// </summary>
-    /// <returns></returns>
     ITable AsTable();
     
     /// <summary>
     ///     Gets the media shape which is an audio or video.
     ///     Use <see cref="IShape.ShapeType"/> property to check if the shape is an <see cref="PShapeTrPShapeTreeWrappe.Audio"/> or <see cref="PShapeTreeWrap.ShapeType.Video"/>.
     /// </summary>
-    /// <returns></returns>
     IMediaShape AsMedia();
-
-    /// <summary>
-    ///     Gets value indicating whether the shape can be removed.
-    /// </summary>
-    bool Removeable { get; }
-    
-    /// <summary>
-    ///     Removes the shape from the slide.
-    /// </summary>
-    void Remove();
 }
