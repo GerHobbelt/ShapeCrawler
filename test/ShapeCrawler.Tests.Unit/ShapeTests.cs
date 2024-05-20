@@ -483,4 +483,88 @@ public class ShapeTests : SCTest
         // Assert
         castingToITable.Should().NotThrow();
     }
+
+    [Test]
+    [SlideShape("021.pptx", 4, 2, 383)]
+    [SlideShape("008.pptx", 1, 3, 66)]
+    [SlideShape("006_1 slides.pptx", 1, 2, 160)]
+    [SlideShape("009_table.pptx", 2, 9, 73)]
+    [SlideShape("025_chart.pptx", 3, 7, 79)]
+    [SlideShape("018.pptx", 1, "Picture Placeholder 1", 9)]
+    public void X_Getter_returns_x_coordinate_in_pixels(IShape shape, int expectedX)
+    {
+        // Act
+        int x = shape.X;
+
+        // Assert
+        x.Should().Be(expectedX);
+    }
+
+    [Test]
+    public void X_Getter_returns_x_coordinate_of_Grouped_shape_in_pixels()
+    {
+        // Arrange
+        var pres = new Presentation(StreamOf("009_table.pptx"));
+        var shape = pres.Slides[1].Shapes.GetByName<IGroupShape>("Group 1").Shapes.GetByName<IShape>("Shape 1");
+        
+        // Act
+        int x = shape.X;
+        
+        // Assert
+        x.Should().Be(53);
+    }
+    
+    [Test]
+    [TestCase("050_title-placeholder.pptx", 1, 2, 777)]
+    [TestCase("051_title-placeholder.pptx", 1, 3074, 864)]
+    public void Width_returns_width_of_Title_placeholder(
+        string filename, 
+        int slideNumber, 
+        int shapeId,
+        int expectedWidth)
+    {
+        // Arrange
+        var pres = new Presentation(StreamOf(filename));
+        var shape = pres.Slides[slideNumber - 1].Shapes.GetById<IShape>(shapeId);
+
+        // Act
+        var shapeWidth = shape.Width;
+
+        // Assert
+        shapeWidth.Should().Be(expectedWidth);
+    }
+    
+    [Test]
+    [SlideShape("006_1 slides.pptx", 1, "Shape 2", 149)]
+    [SlideShape( "009_table.pptx", 2, "Object 3", 39)]
+    [SlideShape( "autoshape-grouping.pptx", 1, "Group 2", 108)]
+    public void Height_returns_shape_height_in_pixels(IShape shape, int expectedHeight)
+    {
+        // Act
+        var height = shape.Height;
+
+        // Assert
+        height.Should().Be(expectedHeight);
+    }
+    
+    [Test]
+    [SlideShape("021.pptx", 4, 2, Geometry.Rectangle)]
+    [SlideShape("021.pptx", 4, 3, Geometry.Ellipse)]
+    public void GeometryType_returns_shape_geometry_type(IShape shape, Geometry expectedGeometryType)
+    {
+        // Assert
+        shape.GeometryType.Should().Be(expectedGeometryType);
+    }
+    
+    [Test]
+    [SlideShape("054_get_shape_xpath.pptx", 1, "Title 1", "/p:sld[1]/p:cSld[1]/p:spTree[1]/p:sp[1]")]
+    [SlideShape("054_get_shape_xpath.pptx", 1, "SubTitle 2", "/p:sld[1]/p:cSld[1]/p:spTree[1]/p:sp[2]")]
+    public void SDKXPath_returns_shape_xpath(IShape shape, string expectedXPath)
+    {
+        // Act
+        var shapeXPath = shape.SDKXPath;
+
+        // Assert
+        shapeXPath.Should().Be(expectedXPath);
+    }
 }
