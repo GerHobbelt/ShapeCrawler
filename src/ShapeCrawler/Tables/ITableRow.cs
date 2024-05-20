@@ -36,21 +36,55 @@ public interface ITableRow
     A.TableRow ATableRow();
 }
 
-internal sealed class SlideTableRow : ITableRow
+internal sealed class TableRow : ITableRow
 {
-    private readonly Lazy<List<TableCell>> cells;
-    private readonly SlidePart sdkSlidePart;
+    private readonly TypedOpenXmlPart sdkTypedOpenXmlPart;
     private readonly int index;
 
-    internal SlideTableRow(SlidePart sdkSlidePart, A.TableRow aTableRow, int index)
+    internal TableRow(TypedOpenXmlPart sdkTypedOpenXmlPart, A.TableRow aTableRow, int index)
     {
+        this.sdkTypedOpenXmlPart = sdkTypedOpenXmlPart;
         this.ATableRow = aTableRow;
-        this.sdkSlidePart = sdkSlidePart;
         this.index = index;
-        this.cells = new Lazy<List<TableCell>>(() => this.GetCells());
     }
 
-    public IReadOnlyList<ITableCell> Cells => this.cells.Value;
+    public IReadOnlyList<ITableCell> Cells
+    {
+        get
+        {
+            var cells = new List<TableCell?>();
+            var aTcList = this.ATableRow.Elements<A.TableCell>();
+            TableCell? addedCell = null;
+
+            var columnIdx = 0;
+            foreach (var aTc in aTcList)
+            {
+                var mergedWithPreviousHorizontal = aTc.HorizontalMerge is not null; 
+                if (mergedWithPreviousHorizontal)
+                {
+                    cells.Add(addedCell);
+                }
+                else if (aTc.VerticalMerge is not null)
+                {
+                    var pGraphicFrame = ATableRow.Ancestors<P.GraphicFrame>().First();
+                    var table = new Table(this.sdkTypedOpenXmlPart, pGraphicFrame);
+                    var upRowIdx = this.index - 1;
+                    var upNeighborCell = (TableCell)table[upRowIdx, columnIdx];
+                    cells.Add(upNeighborCell);
+                    addedCell = upNeighborCell;
+                }
+                else
+                {
+                    addedCell = new TableCell(this.sdkTypedOpenXmlPart, aTc, this.index, columnIdx);
+                    cells.Add(addedCell);
+                }
+
+                columnIdx++;
+            }
+
+            return cells!;
+        }
+    }
 
     public int Height
     {
@@ -75,7 +109,7 @@ internal sealed class SlideTableRow : ITableRow
     {
         return (int)UnitConverter.EmuToPoint((int)this.ATableRow.Height!.Value);
     }
-    
+
     private void UpdateHeight(int newPoints)
     {
         var currentPoints = this.GetHeight();
@@ -83,12 +117,12 @@ internal sealed class SlideTableRow : ITableRow
         {
             return;
         }
-        
+
         var newEmu = UnitConverter.PointToEmu(newPoints);
         this.ATableRow.Height!.Value = newEmu;
 
-        var pGraphicalFrame = new SdkOpenXmlElement(ATableRow).FirstAncestor<P.GraphicFrame>();
-        var parentTable = new SlideTable(this.sdkSlidePart, pGraphicalFrame);
+        var pGraphicalFrame = ATableRow.Ancestors<P.GraphicFrame>().First();
+        var parentTable = new Table(this.sdkTypedOpenXmlPart, pGraphicalFrame);
         if (newPoints > currentPoints)
         {
             var diffPoints = newPoints - currentPoints;
@@ -101,39 +135,5 @@ internal sealed class SlideTableRow : ITableRow
             var diffPixels = (int)UnitConverter.PointToPixel(diffPoints);
             parentTable.Height -= diffPixels;
         }
-    }
-    
-    private List<TableCell> GetCells()
-    {
-        var cellList = new List<TableCell?>();
-        var aTcList = this.ATableRow.Elements<A.TableCell>();
-        TableCell? addedCell = null;
-
-        var columnIdx = 0;
-        foreach (var aTc in aTcList)
-        {
-            if (aTc.HorizontalMerge is not null)
-            {
-                cellList.Add(addedCell);
-            }
-            else if (aTc.VerticalMerge is not null)
-            {
-                var pGraphicalFrame = new SdkOpenXmlElement(ATableRow).FirstAncestor<P.GraphicFrame>();
-                var parentTable = new SlideTable(this.sdkSlidePart, pGraphicalFrame);
-                int upRowIdx = this.index - 1;
-                var upNeighborCell = (TableCell)parentTable[upRowIdx, columnIdx];
-                cellList.Add(upNeighborCell);
-                addedCell = upNeighborCell;
-            }
-            else
-            {
-                addedCell = new TableCell(this.sdkSlidePart,aTc, this.index, columnIdx);
-                cellList.Add(addedCell);
-            }
-
-            columnIdx++;
-        }
-
-        return cellList!;
     }
 }

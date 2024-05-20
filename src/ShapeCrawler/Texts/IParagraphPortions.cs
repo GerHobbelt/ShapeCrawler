@@ -4,10 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using ShapeCrawler.AutoShapes;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Services.Factories;
-using ShapeCrawler.Shared;
 using ShapeCrawler.Texts;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -33,7 +31,7 @@ public interface IParagraphPortions : IEnumerable<IParagraphPortion>
     ///     Adds text portion.
     /// </summary>
     void AddText(string text);
-    
+
     /// <summary>
     /// 	Adds Line Break.
     /// </summary>
@@ -50,19 +48,18 @@ public interface IParagraphPortions : IEnumerable<IParagraphPortion>
     void Remove(IList<IParagraphPortion> portions);
 }
 
-internal sealed class SlideParagraphPortions : IParagraphPortions
+internal sealed class ParagraphPortions : IParagraphPortions
 {
-    private readonly SlidePart sdkSlidePart;
+    private readonly TypedOpenXmlPart sdkTypedOpenXmlPart;
     private readonly A.Paragraph aParagraph;
 
-    internal SlideParagraphPortions(SlidePart sdkSlidePart, A.Paragraph aParagraph)
+    internal ParagraphPortions(TypedOpenXmlPart sdkTypedOpenXmlPart, A.Paragraph aParagraph)
     {
-        this.sdkSlidePart = sdkSlidePart;
+        this.sdkTypedOpenXmlPart = sdkTypedOpenXmlPart;
         this.aParagraph = aParagraph;
     }
-    
-    public int Count => this.Portions().Count;
 
+    public int Count => this.Portions().Count;
     public IParagraphPortion this[int index] => this.Portions()[index];
 
     public void AddText(string text)
@@ -72,10 +69,10 @@ internal sealed class SlideParagraphPortions : IParagraphPortions
             throw new SCException(
                 $"Text can not contain New Line. Use {nameof(IParagraphPortions.AddLineBreak)} to add Line Break.");
         }
-        
+
         var lastARunOrABreak = this.aParagraph.LastOrDefault(p => p is A.Run or A.Break);
 
-        var textPortions = this.Portions().OfType<SlideTextParagraphPortion>();
+        var textPortions = this.Portions().OfType<TextParagraphPortion>();
         var lastPortion = textPortions.Any() ? textPortions.Last() : null;
         var aTextParent = lastPortion?.AText.Parent ?? new ARunBuilder().Build();
 
@@ -101,16 +98,16 @@ internal sealed class SlideParagraphPortions : IParagraphPortions
     }
 
     public IEnumerator<IParagraphPortion> GetEnumerator() => this.Portions().GetEnumerator();
-
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
-    
+
     internal void AddNewLine()
     {
         var lastARunOrABreak = this.aParagraph.Last();
         lastARunOrABreak.InsertAfterSelf(new A.Break());
     }
 
-    private static void AddText(ref OpenXmlElement? lastElement, OpenXmlElement aTextParent, string text, A.Paragraph aParagraph)
+    private static void AddText(ref OpenXmlElement? lastElement, OpenXmlElement aTextParent, string text,
+        A.Paragraph aParagraph)
     {
         var newARun = (A.Run)aTextParent.CloneNode(true);
         newARun.Text!.Text = text;
@@ -128,28 +125,27 @@ internal sealed class SlideParagraphPortions : IParagraphPortions
     private List<IParagraphPortion> Portions()
     {
         var portions = new List<IParagraphPortion>();
-        foreach (var paraChild in this.aParagraph.Elements())
+        foreach (var aParagraphElement in this.aParagraph.Elements())
         {
-            switch (paraChild)
+            switch (aParagraphElement)
             {
                 case A.Run aRun:
-                    var runPortion = new SlideTextParagraphPortion(this.sdkSlidePart, aRun); 
+                    var runPortion = new TextParagraphPortion(this.sdkTypedOpenXmlPart, aRun);
                     portions.Add(runPortion);
                     break;
                 case A.Field aField:
                 {
-                    var fieldPortion = new SlideField(this.sdkSlidePart, aField);
+                    var fieldPortion = new Field(this.sdkTypedOpenXmlPart, aField);
                     portions.Add(fieldPortion);
                     break;
                 }
-
                 case A.Break aBreak:
                     var lineBreak = new ParagraphLineBreak(aBreak);
                     portions.Add(lineBreak);
                     break;
             }
         }
-        
+
         return portions;
     }
 }

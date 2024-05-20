@@ -37,8 +37,9 @@ internal sealed class SeriesList : ISeriesList
         var seriesList = new List<ISeries>();
         foreach (var cXChart in cXCharts)
         {
-            Enum.TryParse(cXChart.LocalName, true, out SCChartType seriesChartType);
-            seriesList.AddRange(this.CSerList().Select(cSer => new Series(this.sdkChartPart, cSer, seriesChartType)));
+            Enum.TryParse(cXChart.LocalName, true, out ChartType seriesChartType);
+            var cSerList = cXChart.ChildElements.Where(e => e.LocalName.Equals("ser", StringComparison.Ordinal));
+            seriesList.AddRange(cSerList.Select(cSer => new Series(this.sdkChartPart, cSer, seriesChartType)));
         }
 
         return seriesList;

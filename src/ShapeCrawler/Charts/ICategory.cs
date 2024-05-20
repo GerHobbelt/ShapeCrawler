@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using ShapeCrawler.Shared;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using X = DocumentFormat.OpenXml.Spreadsheet;
 
 // ReSharper disable once CheckNamespace
@@ -13,65 +11,17 @@ namespace ShapeCrawler;
 public interface ICategory
 {
     /// <summary>
-    ///     Gets main category. Returns <c>NULL</c> if chart is not Multi-Category.
+    ///     Gets a value indicating whether the category has a main category.
     /// </summary>
-    public ICategory? MainCategory { get; }
+    public bool HasMainCategory { get; }
+ 
+    /// <summary>
+    ///     Returns main category.
+    /// </summary>
+    public ICategory MainCategory { get; }
 
     /// <summary>
     ///     Gets or sets category name.
     /// </summary>
     string Name { get; set; }
-}
-
-internal sealed class Category : ICategory
-{
-    private readonly int index;
-    private readonly NumericValue cachedValue;
-    private readonly ResetableLazy<List<X.Cell>>? xCells;
-
-    internal Category(int index, NumericValue cachedValue, Category mainCategory)
-    {
-        this.index = index;
-        this.cachedValue = cachedValue;
-        this.MainCategory = mainCategory;
-    }
-    
-    internal Category(int index, NumericValue cachedValue)
-    {
-        this.index = index;
-        this.cachedValue = cachedValue;
-    }
-
-    internal Category(ResetableLazy<List<X.Cell>> xCells, int index, NumericValue cachedValue)
-    {
-        this.xCells = xCells;
-        this.index = index;
-        this.cachedValue = cachedValue;
-    }
-
-    public ICategory? MainCategory { get; }
-
-    public string Name
-    {
-        get => this.cachedValue.InnerText;
-        set
-        {
-            if (this.MainCategory != null)
-            {
-                const string msg =
-                    "Sorry, but updating the category name of Multi-Category charts have not yet been supported by ShapeCrawler." +
-                    "If it is critical for you, you are always welcome for this implementation. " +
-                    "We will wait for your Pull Request on https://github.com/ShapeCrawler/ShapeCrawler.";
-                throw new NotSupportedException(msg);
-            }
-
-            this.cachedValue.Text = value;
-
-            var xCell = this.xCells!.Value[this.index];
-            xCell.DataType = new DocumentFormat.OpenXml.EnumValue<X.CellValues>(X.CellValues.String);
-            xCell.CellValue = new X.CellValue(value);
-
-            this.xCells.Reset();
-        }
-    }
 }

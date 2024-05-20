@@ -1,20 +1,25 @@
-﻿using ShapeCrawler.Services.Factories;
+﻿using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
+using ShapeCrawler.Services.Factories;
+using ShapeCrawler.ShapeCollection;
 using ShapeCrawler.Shared;
-using ShapeCrawler.Texts;
+using ShapeCrawler.Wrappers;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace ShapeCrawler.Fonts;
 
-internal record PortionFontSize : IFontSize
+internal class PortionFontSize : IFontSize
 {
+    private readonly TypedOpenXmlPart sdkTypedOpenXmlPart;
     private readonly A.Text aText;
 
-    internal PortionFontSize(A.Text aText)
+    internal PortionFontSize(TypedOpenXmlPart sdkTypedOpenXmlPart, A.Text aText)
     {
+        this.sdkTypedOpenXmlPart = sdkTypedOpenXmlPart;
         this.aText = aText;
     }
     
-    public int Size()
+    int IFontSize.Size()
     {
         var fontSize = this.aText.Parent!.GetFirstChild<A.RunProperties>()?.FontSize
             ?.Value;
@@ -23,10 +28,48 @@ internal record PortionFontSize : IFontSize
             return fontSize.Value / 100;
         }
 
-        return SCConstants.DefaultFontSize;
+        var size = new ReferencedIndent(this.sdkTypedOpenXmlPart, this.aText).FontSizeOrNull();
+        if (size != null)
+        {
+            return size.Value;
+        }
+
+        var indentLevel = new AParagraphWrap(this.aText.Ancestors<A.Paragraph>().First()).IndentLevel();
+        var sdkSlidePart = (SlidePart)this.sdkTypedOpenXmlPart;
+        
+        var pPresentation = ((PresentationDocument)sdkSlidePart.OpenXmlPackage).PresentationPart!.Presentation;
+        if (pPresentation.DefaultTextStyle != null)
+        {
+            var defaultTextStyleFonts = new IndentFonts(pPresentation.DefaultTextStyle);
+            var defaultTextStyleFont = defaultTextStyleFonts.FontOrNull(indentLevel);
+            if (defaultTextStyleFont.HasValue && defaultTextStyleFont.Value.Size != null)
+            {
+                return defaultTextStyleFont.Value.Size!.Value / 100;
+            }    
+        }
+
+        var aTextDefault = pPresentation.PresentationPart!.ThemePart!.Theme.ObjectDefaults!.TextDefault;
+        if (aTextDefault is not null)
+        {
+            var listStyleFonts = new IndentFonts(aTextDefault.ListStyle!);
+            var listStyleFont = listStyleFonts.FontOrNull(indentLevel);
+            if (listStyleFont.HasValue && listStyleFont.Value.Size != null)
+            {
+                return listStyleFont.Value.Size!.Value / 100;
+            }    
+        }
+        
+        var indentFonts = new IndentFonts(sdkSlidePart.SlideLayoutPart!.SlideMasterPart!.SlideMaster.TextStyles!.BodyStyle!);
+        var indentFont = indentFonts.FontOrNull(indentLevel);
+        if (indentFont != null)
+        {
+            return indentFont.Value.Size!.Value / 100;
+        }
+        
+        return Constants.DefaultFontSize;
     }
 
-    public void Update(int points)
+    void IFontSize.Update(int points)
     {
         var parent = this.aText.Parent!;
         var aRunPr = parent.GetFirstChild<A.RunProperties>();

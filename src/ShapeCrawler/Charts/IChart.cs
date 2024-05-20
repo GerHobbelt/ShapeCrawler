@@ -12,27 +12,27 @@ public interface IChart : IShape
     /// <summary>
     ///     Gets chart type.
     /// </summary>
-    SCChartType Type { get; }
-
-    /// <summary>
-    ///     Gets chart title if chart has it, otherwise <see langword="null"/>.
-    /// </summary>
-    string? Title { get; }
+    ChartType Type { get; }
 
     /// <summary>
     ///     Gets a value indicating whether the chart has a title.
     /// </summary>
     public bool HasTitle { get; }
+    
+    /// <summary>
+    ///     Gets chart title.
+    /// </summary>
+    string Title { get; }
 
     /// <summary>
-    ///     Gets a value indicating whether the chart type has categories.
+    ///     Gets a value indicating whether the chart has categories.
     /// </summary>
     bool HasCategories { get; }
 
     /// <summary>
-    ///     Gets collection of categories. Returns <see langword="null"/> if chart type has no categories.
+    ///     Gets collection of categories.
     /// </summary>
-    public ICategoryCollection? Categories { get; }
+    public IReadOnlyList<ICategory> Categories { get; }
 
     /// <summary>
     ///     Gets collection of data series.
@@ -50,14 +50,9 @@ public interface IChart : IShape
     List<double> XValues { get; } // TODO: should be excluded
 
     /// <summary>
-    ///     Gets byte array of workbook containing chart data source.
+    ///     Gets byte array of excel book containing chart data source.
     /// </summary>
-    byte[] WorkbookByteArray { get; }
-
-    /// <summary>
-    ///     Gets instance of <see cref="SpreadsheetDocument"/> of Open XML SDK.
-    /// </summary>
-    SpreadsheetDocument SDKSpreadsheetDocument { get; }
+    byte[] BookByteArray();
 
     /// <summary>
     ///     Gets chart axes manager.

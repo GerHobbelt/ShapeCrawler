@@ -22,12 +22,12 @@ public class PictureTests : SCTest
     public async Task Image_BinaryData_returns_image_byte_array()
     {
         // Arrange
-        var shapePicture1 = (IPicture)new SCPresentation(StreamOf("009_table.pptx")).Slides[1].Shapes.First(sp => sp.Id == 3);
-        var shapePicture2 = (IPicture)new SCPresentation(StreamOf("018.pptx")).Slides[0].Shapes.First(sp => sp.Id == 7);
+        var shapePicture1 = (IPicture)new Presentation(StreamOf("009_table.pptx")).Slides[1].Shapes.First(sp => sp.Id == 3);
+        var shapePicture2 = (IPicture)new Presentation(StreamOf("018.pptx")).Slides[0].Shapes.First(sp => sp.Id == 7);
 
         // Act
-        var shapePictureContentCase1 = shapePicture1.Image.BinaryData();
-        var shapePictureContentCase2 =  shapePicture2.Image.BinaryData();
+        var shapePictureContentCase1 = shapePicture1.Image.AsByteArray();
+        var shapePictureContentCase2 =  shapePicture2.Image.AsByteArray();
 
         // Assert
         shapePictureContentCase1.Should().NotBeEmpty();
@@ -39,11 +39,11 @@ public class PictureTests : SCTest
     {
         // Arrange
         var pptxStream = StreamOf("pictures-case001.pptx");
-        var presentation = new SCPresentation(pptxStream);
+        var presentation = new Presentation(pptxStream);
         var pictureShape = presentation.Slides[0].SlideLayout.Shapes.GetByName<IPicture>("Picture 7");
             
         // Act
-        var picByteArray = pictureShape.Image.BinaryData();
+        var picByteArray = pictureShape.Image.AsByteArray();
             
         // Assert
         picByteArray.Should().NotBeEmpty();
@@ -54,7 +54,7 @@ public class PictureTests : SCTest
     {
         // Arrange
         var pptxStream = StreamOf("pictures-case001.pptx");
-        var presentation = new SCPresentation(pptxStream);
+        var presentation = new Presentation(pptxStream);
         var image = presentation.Slides[0].SlideLayout.Shapes.GetByName<IPicture>("Picture 7").Image;
             
         // Act
@@ -69,12 +69,12 @@ public class PictureTests : SCTest
     {
         // Arrange
         var pptxStream = StreamOf("pictures-case001.pptx");
-        var presentation = new SCPresentation(pptxStream);
+        var presentation = new Presentation(pptxStream);
         var slideMaster = presentation.SlideMasters[0];
       var pictureShape = slideMaster.Shapes.GetByName<IPicture>("Picture 9");
             
         // Act
-        var picByteArray = pictureShape.Image.BinaryData();
+        var picByteArray = pictureShape.Image.AsByteArray();
             
         // Assert
         picByteArray.Should().NotBeEmpty();
@@ -86,20 +86,20 @@ public class PictureTests : SCTest
         // Arrange
         var pptx = StreamOf("009_table");
         var pngStream = StreamOf("test-image-2.png");
-        var pres = new SCPresentation(pptx);
+        var pres = new Presentation(pptx);
         var mStream = new MemoryStream();
         var picture = pres.Slides[1].Shapes.GetByName<IPicture>("Picture 1");
         var image = picture.Image!; 
-        var lengthBefore = image.BinaryData().Length;
+        var lengthBefore = image.AsByteArray().Length;
         
         // Act
         image.Update(pngStream);
 
         // Assert
         pres.SaveAs(mStream);
-        pres = new SCPresentation(mStream);
+        pres = new Presentation(mStream);
         picture = pres.Slides[1].Shapes.GetByName<IPicture>("Picture 1");
-        var lengthAfter = picture.Image!.BinaryData().Length;
+        var lengthAfter = picture.Image!.AsByteArray().Length;
 
         lengthAfter.Should().NotBe(lengthBefore);
     }
@@ -109,7 +109,7 @@ public class PictureTests : SCTest
     {
         // Arrange
         var pptxStream = StreamOf("pictures-case002.pptx");
-        var pres = new SCPresentation(pptxStream);
+        var pres = new Presentation(pptxStream);
         var picture = pres.Slides[0].Shapes.GetByName<IPicture>("Picture 1");
 
         // Act
@@ -125,7 +125,7 @@ public class PictureTests : SCTest
         // Arrange
         var pptx = StreamOf("pictures-case001.pptx");
         var image = GetTestBytes("test-image-2.png");
-        var pres = new SCPresentation(pptx);
+        var pres = new Presentation(pptx);
         var groupShape = pres.Slides[0].Shapes.GetByName<IGroupShape>("Group 1");
         var groupedPicture1 = groupShape.Shapes.GetByName<IPicture>("Picture 1");
         var groupedPicture2 = groupShape.Shapes.GetByName<IPicture>("Picture 2");
@@ -136,8 +136,8 @@ public class PictureTests : SCTest
 
         // Assert
         pres.SaveAs(stream);
-        var pictureContent1 = groupedPicture1.Image.BinaryData();
-        var pictureContent2 = groupedPicture2.Image.BinaryData();
+        var pictureContent1 = groupedPicture1.Image.AsByteArray();
+        var pictureContent2 = groupedPicture2.Image.AsByteArray();
         pictureContent1.SequenceEqual(pictureContent2).Should().BeFalse();
     }
         
@@ -146,7 +146,7 @@ public class PictureTests : SCTest
     {
         // Arrange
         var pptxStream = StreamOf("pictures-case001.pptx");
-        var pres = new SCPresentation(pptxStream);
+        var pres = new Presentation(pptxStream);
         var pictureImage = pres.Slides[0].Shapes.GetByName<IPicture>("Picture 3").Image;
             
         // Act
@@ -161,7 +161,7 @@ public class PictureTests : SCTest
     {
         // TODO: Deeper learn such pictures, where content generated via a:ln
         // Arrange
-        var pre = new SCPresentation(StreamOf("019.pptx"));
+        var pre = new Presentation(StreamOf("019.pptx"));
 
         // Act - Assert
         Assert.ThrowsAny<Exception>(() => pre.Slides[1].Shapes.Single(x => x.Id == 47));

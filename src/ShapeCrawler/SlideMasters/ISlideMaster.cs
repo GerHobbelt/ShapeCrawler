@@ -31,7 +31,7 @@ public interface ISlideMaster
     /// <summary>
     ///     Gets collection of master shapes.
     /// </summary>
-    IReadOnlyShapes Shapes => new MasterShapes(this);
+    IShapes Shapes { get; }
 
     /// <summary>
     ///     Gets theme.
@@ -55,35 +55,21 @@ internal sealed class SlideMaster : ISlideMaster
         this.sdkSlideMasterPart = sdkSlideMasterPart;
         this.layouts = new ResetableLazy<SlideLayouts>(() => new SlideLayouts(this.sdkSlideMasterPart));
         this.slideNumber = new Lazy<MasterSlideNumber?>(this.CreateSlideNumber);
+        this.Shapes = new ShapeCollection.Shapes(this.sdkSlideMasterPart);
     }
 
-    public IImage? Background => this.GetBackground();
-
+    public IImage? Background => null;
     public IReadOnlyList<ISlideLayout> SlideLayouts => this.layouts.Value;
-    public IReadOnlyShapes Shapes => new MasterShapes(this);
-
-    public ITheme Theme => this.GetTheme();
-
+    public IShapes Shapes { get; }
+    public ITheme Theme => new Theme(this.sdkSlideMasterPart, this.sdkSlideMasterPart.ThemePart!.Theme);
     public IMasterSlideNumber? SlideNumber => this.slideNumber.Value;
-
     public int Number { get; set; }
-
-    private SlidePictureImage? GetBackground()
-    {
-        return null;
-    }
-    
-    private ITheme GetTheme()
-    {
-        return new SCTheme(this, this.sdkSlideMasterPart.ThemePart!.Theme);
-    }
-    
     private MasterSlideNumber? CreateSlideNumber()
     {
         var pSldNum = this.sdkSlideMasterPart.SlideMaster.CommonSlideData!.ShapeTree!
             .Elements<P.Shape>()
             .FirstOrDefault(s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == P.PlaceholderValues.SlideNumber);
         
-        return pSldNum is null ? null : new MasterSlideNumber(pSldNum);
+        return pSldNum is null ? null : new MasterSlideNumber(this.sdkSlideMasterPart, pSldNum);
     }
 }

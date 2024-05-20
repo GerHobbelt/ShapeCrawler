@@ -14,7 +14,7 @@ public class SlideMasterTests : SCTest
     {
         // Arrange
         var slideMaster = pres.SlideMasters[0];
-        var green = SCColor.FromHex("00FF00");
+        var green = Color.FromHex("00FF00");
 
         // Act
         slideMaster.SlideNumber!.Font.Color = green;
@@ -27,16 +27,16 @@ public class SlideMasterTests : SCTest
     public void SlideNumber_Font_Size_Setter()
     {
         // Arrange
-        var pres = new SCPresentation();
+        var pres = new Presentation();
         var slideMaster = pres.SlideMasters[0];
 
         // Act
-        pres.HeaderAndFooter.AddSlideNumber();
+        pres.Footer.AddSlideNumber();
         slideMaster.SlideNumber!.Font.Size = 30;
 
         // Assert
         pres.Save();
-        pres = new SCPresentation(new MemoryStream(pres.AsByteArray()));
+        pres = new Presentation(new MemoryStream(pres.AsByteArray()));
         slideMaster = pres.SlideMasters[0];
         slideMaster.SlideNumber!.Font.Size.Should().Be(30);
     }

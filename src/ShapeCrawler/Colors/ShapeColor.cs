@@ -12,8 +12,8 @@ internal sealed class ShapeColor
 
     #region Constructors
 
-    internal ShapeColor(SlidePart sdkSlidePart, A.Text aText)
-        : this(new PresentationColor(sdkSlidePart), aText.Ancestors<P.Shape>().First())
+    internal ShapeColor(TypedOpenXmlPart sdkTypedOpenXmlPart, A.Text aText)
+        : this(new PresentationColor(sdkTypedOpenXmlPart), aText.Ancestors<P.Shape>().First())
     {
     }
 
@@ -52,7 +52,7 @@ internal sealed class ShapeColor
         return null;
     }
 
-    internal SCColorType? TypeOrNull()
+    internal ColorType? TypeOrNull()
     {
         if (this.pShape.ShapeStyle == null)
         {
@@ -62,17 +62,17 @@ internal sealed class ShapeColor
         var aFontReference = this.pShape.ShapeStyle.FontReference!;
         if (aFontReference.RgbColorModelHex != null)
         {
-            return SCColorType.RGB;
+            return ColorType.RGB;
         }
         
         if (aFontReference.SchemeColor != null)
         {
-            return SCColorType.Theme;
+            return ColorType.Theme;
         }
         
         if (aFontReference.PresetColor != null)
         {
-            return SCColorType.Preset;
+            return ColorType.Preset;
         }
         
         return null;

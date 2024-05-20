@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using ShapeCrawler.Drawing;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
+using ShapeCrawler.ShapeCollection;
 using ShapeCrawler.Shapes;
 using ShapeCrawler.Shared;
 using SkiaSharp;
@@ -29,7 +30,7 @@ public interface ITable : IShape
     /// <summary>
     ///     Gets table rows.
     /// </summary>
-    IRowCollection Rows { get; }
+    ITableRows Rows { get; }
 
     /// <summary>
     ///     Gets cell by row and column indexes.
@@ -49,28 +50,24 @@ public interface ITable : IShape
     void UpdateFill(string colorHex);
 }
 
-internal sealed class SlideTable : CopyableShape, ITable, IRemoveable 
+internal sealed class Table : CopyableShape, ITable 
 {
-    private readonly SlidePart sdkSlidePart;
     private readonly P.GraphicFrame pGraphicFrame;
-    private readonly ResetableLazy<SlideTableRows> rowCollection;
 
-    internal SlideTable(SlidePart sdkSlidePart, OpenXmlCompositeElement pShapeTreeElement)
-        : base(pShapeTreeElement)
+    internal Table(TypedOpenXmlPart sdkTypedOpenXmlPart, OpenXmlCompositeElement pShapeTreeElement)
+        : base(sdkTypedOpenXmlPart, pShapeTreeElement)
     {
-        this.sdkSlidePart = sdkSlidePart;
-        var graphicFrame = (P.GraphicFrame)pShapeTreeElement;
-        this.rowCollection =
-            new ResetableLazy<SlideTableRows>(() => new SlideTableRows(this.sdkSlidePart, graphicFrame));
         this.pGraphicFrame = (P.GraphicFrame)pShapeTreeElement;
+        this.Rows = new TableRows(sdkTypedOpenXmlPart, this.pGraphicFrame);
     }
 
-    public override SCShapeType ShapeType => SCShapeType.Table;
+    public override ShapeType ShapeType => ShapeType.Table;
     public IReadOnlyList<IColumn> Columns => this.GetColumnList(); // TODO: make lazy
-    public IRowCollection Rows => this.rowCollection.Value;
-    public override SCGeometry GeometryType => SCGeometry.Rectangle;
+    public ITableRows Rows { get; }
 
-    private A.Table ATable => this.pGraphicFrame.GetATable();
+    public override Geometry GeometryType => Geometry.Rectangle;
+
+    private A.Table ATable => this.pGraphicFrame.ATable();
 
     public ITableCell this[int rowIndex, int columnIndex] => this.Rows[rowIndex].Cells[columnIndex];
 
@@ -117,11 +114,9 @@ internal sealed class SlideTable : CopyableShape, ITable, IRemoveable
         {
             this.MergeVertically(maxRowIndex, minRowIndex, aTableRows, minColIndex, maxColIndex);
         }
-
+        
         this.RemoveColumnIfNeeded(aTableRows);
         this.RemoveRowIfNeeded();
-
-        this.rowCollection.Reset();
     }
 
     internal void Draw(SKCanvas canvas)
@@ -155,20 +150,20 @@ internal sealed class SlideTable : CopyableShape, ITable, IRemoveable
         // Delete a:tr if needed
         for (var rowIdx = 0; rowIdx < this.Rows.Count;)
         {
-            var allRowCells = this.Rows[rowIdx].Cells.OfType<TableCell>().ToList();
-            var firstRowCell = allRowCells[0];
-            var firstRowCellSpan = firstRowCell.ATableCell.RowSpan?.Value;
-            if (firstRowCellSpan > 1 && allRowCells.All(cell => cell.ATableCell.RowSpan?.Value == firstRowCellSpan))
+            var cells = this.Rows[rowIdx].Cells.OfType<TableCell>().ToList();
+            var firstCell = cells[0];
+            var firstCellSpan = firstCell.ATableCell.RowSpan?.Value;
+            if (firstCellSpan > 1 && cells.All(cell => cell.ATableCell.RowSpan?.Value == firstCellSpan))
             {
-                int deleteRowsCount = firstRowCellSpan.Value - 1;
+                int deleteRowsCount = firstCellSpan.Value - 1;
 
                 foreach (var row in this.Rows.Skip(rowIdx + 1).Take(deleteRowsCount))
                 {
-                    ((SlideTableRow)row).ATableRow.Remove();
+                    ((TableRow)row).ATableRow.Remove();
                     this.Rows[rowIdx].Height += row.Height;
                 }
 
-                rowIdx += firstRowCellSpan.Value;
+                rowIdx += firstCellSpan.Value;
                 continue;
             }
 
@@ -225,7 +220,11 @@ internal sealed class SlideTable : CopyableShape, ITable, IRemoveable
         }
     }
 
-    private void MergeHorizontal(int maxColIndex, int minColIndex, int minRowIndex, int maxRowIndex,
+    private void MergeHorizontal(
+        int maxColIndex, 
+        int minColIndex, 
+        int minRowIndex, 
+        int maxRowIndex,
         List<A.TableRow> aTableRows)
     {
         int horizontalMergingCount = maxColIndex - minColIndex + 1;
@@ -259,10 +258,10 @@ internal sealed class SlideTable : CopyableShape, ITable, IRemoveable
         // Delete a:gridCol and a:tc elements if all columns are merged
         for (var colIdx = 0; colIdx < this.Columns.Count;)
         {
-            var topColumnCell = ((SlideTableRow)this.Rows[0]).ATableRow.Elements<A.TableCell>().ToList()[colIdx];
+            var topColumnCell = ((TableRow)this.Rows[0]).ATableRow.Elements<A.TableCell>().ToList()[colIdx];
             var topColumnCellSpan = topColumnCell.GridSpan?.Value;
             var nextBottomColumnCells = this.Rows
-                .Select(row => ((SlideTableRow)row).ATableRow.Elements<A.TableCell>().ToList()[colIdx]).ToList();
+                .Select(row => ((TableRow)row).ATableRow.Elements<A.TableCell>().ToList()[colIdx]).ToList();
             var sameGridSpan = nextBottomColumnCells.All(c => c.GridSpan?.Value == topColumnCellSpan);
             if (topColumnCellSpan > 1 && sameGridSpan)
             {
@@ -279,7 +278,7 @@ internal sealed class SlideTable : CopyableShape, ITable, IRemoveable
                 // Delete a:tc elements
                 foreach (var aTblRow in aTableRows)
                 {
-                    var removeCells = aTblRow.Elements<A.TableCell>().Skip(colIdx).Take(deleteColumnCount).ToList();
+                    var removeCells = aTblRow.Elements<A.TableCell>().Skip(colIdx+1).Take(deleteColumnCount).ToList();
                     foreach (var aTblCell in removeCells)
                     {
                         aTblCell.Remove();
@@ -294,9 +293,7 @@ internal sealed class SlideTable : CopyableShape, ITable, IRemoveable
             }
         }
     }
-
-    public void Remove()
-    {
-        throw new NotImplementedException();
-    }
+    
+    public override bool Removeable => true;
+    public override void Remove() => this.pGraphicFrame.Remove();
 }

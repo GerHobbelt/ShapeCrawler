@@ -7,7 +7,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace ShapeCrawler.Fonts;
 
-internal sealed class IndentFonts
+internal readonly record struct IndentFonts
 {
     private readonly OpenXmlCompositeElement sdkOpenXmlCompositeElement;
 
@@ -90,7 +90,7 @@ internal sealed class IndentFonts
             {
                 var indentFont = new IndentFont
                 {
-                    FontSize = fontSize,
+                    Size = fontSize,
                     ALatinFont = aLatinFont,
                     IsBold = isBold,
                     IsItalic = isItalic,
@@ -112,7 +112,7 @@ internal sealed class IndentFonts
             {
                 var indentFont = new IndentFont
                 {
-                    FontSize = endParaRunPrFs
+                    Size = endParaRunPrFs
                 };
 
                 return indentFont;
@@ -122,7 +122,7 @@ internal sealed class IndentFonts
         return null;
     }
 
-    internal SCColorType? ColorType(int indentLevel)
+    internal ColorType? ColorType(int indentLevel)
     {
         var indentFont = this.FontOrNull(indentLevel);
         if (indentFont is null)
@@ -132,27 +132,26 @@ internal sealed class IndentFonts
 
         if (indentFont.Value.ARgbColorModelHex != null)
         {
-            return SCColorType.RGB;
+            return ShapeCrawler.ColorType.RGB;
         }
 
         if (indentFont.Value.ASchemeColor != null)
         {
-            return SCColorType.Theme;
+            return ShapeCrawler.ColorType.Theme;
         }
 
         if (indentFont.Value.ASystemColor != null)
         {
-            return SCColorType.Standard;
+            return ShapeCrawler.ColorType.Standard;
         }
 
         if (indentFont.Value.APresetColor != null)
         {
-            return SCColorType.Preset;
+            return ShapeCrawler.ColorType.Preset;
         }
 
         return null;
     }
-
 
     internal bool? BoldFlagOrNull(int indentLevel)
     {
