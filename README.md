@@ -1,6 +1,6 @@
 <h3 align="center">
 
-![ShapeCrawler](./doc/logo-extend.png)
+![ShapeCrawler](./docs/logo-extend.png)
 
 </h3>
 
@@ -18,7 +18,7 @@ ShapeCrawler (formerly SlideDotNet) is a .NET library for manipulating PowerPoin
 - [How To?](#how-to)
   - [Create presentation](#create-presentation)
   - [More samples](#more-samples)
-- [Develop NuGet package](#develop-nuget-package)
+- [Prerelease Version](#prerelease-version)
 - [Have questions?](#have-questions)
 - [How to contribute](#how-to-contribute)
   - [Bug Report](#bug-report)
@@ -64,12 +64,11 @@ pres.SaveAs("my_pres.pptx");
 
 Visit the [**Wiki**](https://github.com/ShapeCrawler/ShapeCrawler/wiki/Examples) page to find more usage samples.
 
-## Develop NuGet package
-You can create NuGet package using the script `script\create-package.bat`. For example, to get the latest development version:
+## Prerelease Version
+To access prerelease builds from `master` branch, add `https://www.myget.org/F/shape/api/v3/index.json` as a package source:
 
-1. Clone the repository.
-2. Check out the `master` branch.
-3. Run `script\create-package.bat`. This will create `ShapeCrawler.X.X.X.nupkg` was created.
+![Prerelease](./docs/prerelease.png)
+![Download Prerelease](./docs/prerelease-download.png)
 
 ## Have questions?
 
@@ -83,14 +82,14 @@ Give a star⭐ if you find this useful, please give it a star to show your suppo
 ### Bug Report
 If you encounter an issue, report the bug on the [issue](https://github.com/ShapeCrawler/ShapeCrawler/issues) page.
 
+To be able to reproduce a bug, it's often necessary to have the original presentation file attached to the issue description. If this file contains confidential data and cannot be shared publicly, you can securely send it to theadamo86@gmail.com. We assure you that only the maintainer will access this file, and it will not be shared publicly.
+
 ### Code contributing
 Pull Requests are welcome! Please read the [Contribution Guide](https://github.com/ShapeCrawler/ShapeCrawler/blob/master/CONTRIBUTING.md) for more details.
 
+## Changelog  
 
-# Changelog  
-
-## Version 0.49.0 - 2023-09-12
-🍀Added new `SCAudioType` to be able to add audio shape with different types [#579](https://github.com/ShapeCrawler/ShapeCrawler/issues/579)  
-🐞Fixed an issue with Slide Background updating [#577](https://github.com/ShapeCrawler/ShapeCrawler/issues/577)
+### Version 0.50.1 - 2023-12-08
+🍀Added `IShape.SDKPath` to store the XPath of the underlying Open XML element [#592](https://github.com/ShapeCrawler/ShapeCrawler/issues/592)  
 
 Visit [CHANGELOG.md](https://github.com/ShapeCrawler/ShapeCrawler/blob/master/CHANGELOG.md) to see the full log.
