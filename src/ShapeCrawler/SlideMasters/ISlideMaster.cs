@@ -1,9 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
-using ShapeCrawler.Factories;
+using ShapeCrawler.Drawing;
+using ShapeCrawler.Fonts;
 using ShapeCrawler.Services;
+using ShapeCrawler.Shapes;
 using ShapeCrawler.Shared;
+using ShapeCrawler.SlideMasters;
 using P = DocumentFormat.OpenXml.Presentation;
 
 // ReSharper disable CheckNamespace
@@ -25,14 +29,9 @@ public interface ISlideMaster
     IReadOnlyList<ISlideLayout> SlideLayouts { get; }
 
     /// <summary>
-    ///     Gets collection of shape.
+    ///     Gets collection of master shapes.
     /// </summary>
-    IShapeCollection Shapes { get; }
-
-    /// <summary>
-    ///     Gets parent Presentation.
-    /// </summary>
-    IPresentation Presentation { get; }
+    IReadOnlyShapes Shapes => new MasterShapes(this);
 
     /// <summary>
     ///     Gets theme.
@@ -42,113 +41,49 @@ public interface ISlideMaster
     /// <summary>
     ///     Gets slide number. Returns <see langword="null"/> if slide master does not have slide number.
     /// </summary>
-    ISlideNumber? SlideNumber { get; }
+    IMasterSlideNumber? SlideNumber { get; }
 }
 
-internal sealed class SCSlideMaster : SlideStructure, ISlideMaster
+internal sealed class SlideMaster : ISlideMaster
 {
-    private readonly ResetAbleLazy<List<SCSlideLayout>> slideLayouts;
+    private readonly ResetableLazy<SlideLayouts> layouts;
+    private readonly Lazy<MasterSlideNumber?> slideNumber;
+    private readonly SlideMasterPart sdkSlideMasterPart;
 
-    internal SCSlideMaster(SCPresentation pres, P.SlideMaster pSlideMaster, int number)
-        : base(pres)
+    internal SlideMaster(SlideMasterPart sdkSlideMasterPart)
     {
-        this.Presentation = pres;
-        this.PSlideMaster = pSlideMaster;
-        this.slideLayouts = new ResetAbleLazy<List<SCSlideLayout>>(this.GetSlideLayouts);
-        this.Number = number;
-        
-        var pSldNum = pSlideMaster.CommonSlideData!.ShapeTree!.Elements<P.Shape>().FirstOrDefault(s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == P.PlaceholderValues.SlideNumber);
-        if (pSldNum is not null)
-        {
-            this.SlideNumber = new SCSlideNumber(pSldNum);
-        }
+        this.sdkSlideMasterPart = sdkSlideMasterPart;
+        this.layouts = new ResetableLazy<SlideLayouts>(() => new SlideLayouts(this.sdkSlideMasterPart));
+        this.slideNumber = new Lazy<MasterSlideNumber?>(this.CreateSlideNumber);
     }
 
     public IImage? Background => this.GetBackground();
 
-    public IReadOnlyList<ISlideLayout> SlideLayouts => this.slideLayouts.Value;
-
-    public override IShapeCollection Shapes => new ShapeCollection(this.PSlideMaster.SlideMasterPart!, this);
-
-    public override ISlideMaster SlideMaster => this;
+    public IReadOnlyList<ISlideLayout> SlideLayouts => this.layouts.Value;
+    public IReadOnlyShapes Shapes => new MasterShapes(this);
 
     public ITheme Theme => this.GetTheme();
 
-    public ISlideNumber? SlideNumber { get; }
+    public IMasterSlideNumber? SlideNumber => this.slideNumber.Value;
 
-    public override int Number { get; set; }
+    public int Number { get; set; }
 
-    internal P.SlideMaster PSlideMaster { get; }
-
-    internal Dictionary<int, FontData> BodyParaLvlToFontData =>
-        FontDataParser.FromCompositeElement(this.PSlideMaster.TextStyles!.BodyStyle!);
-
-    internal Dictionary<int, FontData> TitleParaLvlToFontData =>
-        FontDataParser.FromCompositeElement(this.PSlideMaster.TextStyles!.TitleStyle!);
-
-    internal ThemePart ThemePart => this.PSlideMaster.SlideMasterPart!.ThemePart!;
-
-    internal ShapeCollection ShapesInternal => (ShapeCollection)this.Shapes;
-    
-    internal override TypedOpenXmlPart TypedOpenXmlPart => this.PSlideMaster.SlideMasterPart!;
-
-    internal bool TryGetFontSizeFromBody(int paragraphLvl, out int fontSize)
-    {
-        var bodyParaLvlToFontData =
-            FontDataParser.FromCompositeElement(this.PSlideMaster.TextStyles!.BodyStyle!);
-        if (bodyParaLvlToFontData.TryGetValue(paragraphLvl, out var fontData))
-        {
-            if (fontData.FontSize is not null)
-            {
-                fontSize = fontData.FontSize;
-                return true;
-            }
-        }
-
-        fontSize = -1;
-        return false;
-    }
-
-    internal bool TryGetFontSizeFromOther(int paragraphLvl, out int fontSize)
-    {
-        var pTextStyles = this.PSlideMaster.TextStyles!;
-
-        // Other
-        var otherStyleLvlToFontData = FontDataParser.FromCompositeElement(pTextStyles.OtherStyle!);
-        if (otherStyleLvlToFontData.ContainsKey(paragraphLvl))
-        {
-            if (otherStyleLvlToFontData[paragraphLvl].FontSize is not null)
-            {
-                fontSize = otherStyleLvlToFontData[paragraphLvl].FontSize!;
-                return true;
-            }
-        }
-
-        fontSize = -1;
-        return false;
-    }
-
-    private SCImage? GetBackground()
+    private SlidePictureImage? GetBackground()
     {
         return null;
     }
     
     private ITheme GetTheme()
     {
-        return new SCTheme(this, this.PSlideMaster.SlideMasterPart!.ThemePart!.Theme);
+        return new SCTheme(this, this.sdkSlideMasterPart.ThemePart!.Theme);
     }
     
-    private List<SCSlideLayout> GetSlideLayouts()
+    private MasterSlideNumber? CreateSlideNumber()
     {
-        var rIdList = this.PSlideMaster.SlideLayoutIdList!.OfType<P.SlideLayoutId>().Select(layoutId => layoutId.RelationshipId!);
-        var layouts = new List<SCSlideLayout>(rIdList.Count());
-        var number = 1;
-        foreach (var rId in rIdList)
-        {
-            var layoutPart = (SlideLayoutPart)this.PSlideMaster.SlideMasterPart!.GetPartById(rId.Value!);
-            layouts.Add(new SCSlideLayout(this, layoutPart, number++));
-        }
-
-        return layouts;
+        var pSldNum = this.sdkSlideMasterPart.SlideMaster.CommonSlideData!.ShapeTree!
+            .Elements<P.Shape>()
+            .FirstOrDefault(s => s.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == P.PlaceholderValues.SlideNumber);
+        
+        return pSldNum is null ? null : new MasterSlideNumber(pSldNum);
     }
 }

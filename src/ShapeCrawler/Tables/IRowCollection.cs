@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using ShapeCrawler.Extensions;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -12,7 +13,7 @@ namespace ShapeCrawler;
 /// <summary>
 ///     Represents a table row collection.
 /// </summary>
-public interface IRowCollection : IEnumerable<IRow>
+public interface IRowCollection : IEnumerable<ITableRow>
 {
     /// <summary>
     ///     Gets number of rows.
@@ -22,12 +23,12 @@ public interface IRowCollection : IEnumerable<IRow>
     /// <summary>
     ///     Gets row at the specified index.
     /// </summary>
-    IRow this[int index] { get; }
+    ITableRow this[int index] { get; }
 
     /// <summary>
     ///     Removes specified row from collection.
     /// </summary>
-    void Remove(IRow row);
+    void Remove(ITableRow tableRow);
 
     /// <summary>
     ///     Removes table row by index.
@@ -37,72 +38,67 @@ public interface IRowCollection : IEnumerable<IRow>
     /// <summary>
     ///     Adds a new row at the end of table.
     /// </summary>
-    IRow Add();
+    void Add();
 }
 
-internal sealed class SCRowCollection : IRowCollection
+internal sealed class SlideTableRows : IRowCollection
 {
-    private readonly List<SCRow> collectionItems;
-    private readonly SCTable parentTable;
+    private readonly SlidePart sdkSlidePart;
+    private readonly List<SlideTableRow> rows;
     private readonly A.Table aTable;
+    private readonly P.GraphicFrame pGraphicFrame;
 
-    private SCRowCollection(List<SCRow> rowList, SCTable parentTable, A.Table aTable)
+    internal SlideTableRows (SlidePart sdkSlidePart, P.GraphicFrame pGraphicFrame)
     {
-        this.collectionItems = rowList;
-        this.parentTable = parentTable;
+        this.sdkSlidePart = sdkSlidePart;
+        this.pGraphicFrame = pGraphicFrame;
+        var aTable = pGraphicFrame.GetATable();
+        var aTableRows = aTable.Elements<A.TableRow>();
+        var rowList = new List<SlideTableRow>(aTableRows.Count());
+        var rowIndex = 0;
+        rowList.AddRange(aTableRows.Select(aTblRow => new SlideTableRow(this.sdkSlidePart, aTblRow, rowIndex++)));
+
+        this.rows = rowList;
         this.aTable = aTable;
     }
 
-    public int Count => this.collectionItems.Count;
+    public int Count => this.rows.Count;
 
-    public IRow this[int index] => this.collectionItems[index];
+    public ITableRow this[int index] => this.rows[index];
 
-    public void Remove(IRow removingRow)
+    public void Remove(ITableRow removingTableRow)
     {
-        var removingRowInternal = (SCRow)removingRow;
+        var removingRowInternal = (SlideTableRow)removingTableRow;
         removingRowInternal.ATableRow.Remove();
-        this.collectionItems.Remove(removingRowInternal);
+        this.rows.Remove(removingRowInternal);
     }
 
     public void RemoveAt(int index)
     {
-        if (index < 0 || index >= this.collectionItems.Count)
+        if (index < 0 || index >= this.rows.Count)
         {
             throw new ArgumentOutOfRangeException(nameof(index));
         }
 
-        var innerRow = this.collectionItems[index];
+        var innerRow = this.rows[index];
         this.Remove(innerRow);
     }
 
-    public IRow Add()
+    public void Add()
     {
-        var columnsCount = this.collectionItems[0].Cells.Count;
+        var columnsCount = this.rows[0].Cells.Count;
         var aTableRow = this.aTable.AddRow(columnsCount);
-        var tableRow = new SCRow(this.parentTable, aTableRow, this.collectionItems.Count);
-        this.collectionItems.Add(tableRow);
-
-        return tableRow;
+        var tableRow = new SlideTableRow(this.sdkSlidePart, aTableRow, this.rows.Count);
+        this.rows.Add(tableRow);
     }
 
-    IEnumerator<IRow> IEnumerable<IRow>.GetEnumerator()
+    IEnumerator<ITableRow> IEnumerable<ITableRow>.GetEnumerator()
     {
-        return this.collectionItems.GetEnumerator();
+        return this.rows.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return this.collectionItems.GetEnumerator();
-    }
-
-    internal static SCRowCollection Create(SCTable table, P.GraphicFrame pGraphicFrame)
-    {
-        var aTable = pGraphicFrame.GetATable();
-        var aTableRows = aTable.Elements<A.TableRow>();
-        var rowList = new List<SCRow>(aTableRows.Count());
-        var rowIndex = 0;
-        rowList.AddRange(aTableRows.Select(aTblRow => new SCRow(table, aTblRow, rowIndex++)));
-
-        return new SCRowCollection(rowList, table, aTable);
+        return this.rows.GetEnumerator();
     }
 }

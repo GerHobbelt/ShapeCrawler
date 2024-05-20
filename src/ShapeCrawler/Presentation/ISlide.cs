@@ -2,14 +2,13 @@ using System.Collections.Generic;
 #if DEBUG
 using System.Threading.Tasks;
 #endif
-using DocumentFormat.OpenXml.Packaging;
 
 namespace ShapeCrawler;
 
 /// <summary>
 ///     Represents a slide.
 /// </summary>
-public interface ISlide : ISlideStructure
+public interface ISlide
 {
     /// <summary>
     ///     Gets background image.
@@ -24,7 +23,7 @@ public interface ISlide : ISlideStructure
     /// <summary>
     ///     Gets a value indicating whether the slide is hidden.
     /// </summary>
-    bool Hidden { get; }
+    bool Hidden();
 
     /// <summary>
     ///     Gets referenced Slide Layout.
@@ -32,22 +31,23 @@ public interface ISlide : ISlideStructure
     ISlideLayout SlideLayout { get; }
 
     /// <summary>
-    ///     Gets instance of <see cref="DocumentFormat.OpenXml.Packaging.SlidePart"/> class of the underlying Open XML SDK.
+    ///     List of all textboxes on that slide.
     /// </summary>
-    SlidePart SDKSlidePart { get; }
-
-    /// <summary>
-    /// Gets a list of all textboxes on that slide, including those in tables.
-    /// </summary>
-    public IList<ITextFrame> GetAllTextFrames();
+    public IList<ITextFrame> TextFrames();
 
     /// <summary>
     ///     Hides slide.
     /// </summary>
     void Hide();
+    
+    int Number { get; set; }
+    
+    /// <summary>
+    ///     Gets shape collection.
+    /// </summary>
+    ISlideShapes Shapes { get; }
 
 #if DEBUG
-    
     Task<string> ToHtml();
     
     /// <summary>

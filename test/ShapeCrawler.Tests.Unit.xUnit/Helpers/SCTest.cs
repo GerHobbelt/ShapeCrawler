@@ -28,10 +28,10 @@ public abstract class SCTest
 
     protected static byte[] GetTestBytes(string fileName)
     {
-        return GetInputStream(fileName).ToArray();
+        return StreamOf(fileName).ToArray();
     }
 
-    public static MemoryStream GetInputStream(string fileName)
+    public static MemoryStream StreamOf(string fileName)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var stream = assembly.GetResourceStream(fileName);
@@ -43,25 +43,26 @@ public abstract class SCTest
     
     protected string GetTestPath(string fileName)
     {
-        var stream = GetInputStream(fileName);
+        var stream = StreamOf(fileName);
         var path = Path.GetTempFileName();
         File.WriteAllBytes(path, stream.ToArray());
 
         return path;
     }
 
-    protected static IPresentation SaveAndOpenPresentation(IPresentation presentation)
+    protected static SCPresentation SaveAndOpenPresentation(IPresentation presentation)
     {
         var stream = new MemoryStream();
         presentation.SaveAs(stream);
 
-        return SCPresentation.Open(stream);
+        return new SCPresentation(stream);
     }
 
 #if DEBUG
 
     protected void SaveResult(IPresentation pres)
     {
+
         var testFolder = Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "TestResults",
             TestContext.CurrentContext.Test.Name);
         Directory.CreateDirectory(testFolder);
@@ -73,9 +74,9 @@ public abstract class SCTest
 
     private static IPresentation GetPresentationFromAssembly(string fileName)
     {
-        var stream = GetInputStream(fileName);
+        var stream = StreamOf(fileName);
 
-        return SCPresentation.Open(stream);
+        return new SCPresentation(stream);
     }
 }
 

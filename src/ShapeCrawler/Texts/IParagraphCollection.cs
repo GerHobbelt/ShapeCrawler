@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using ShapeCrawler.Shared;
 using ShapeCrawler.Texts;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -16,7 +17,7 @@ public interface IParagraphCollection : IReadOnlyList<IParagraph>
     /// <summary>
     ///     Adds a new paragraph in collection.
     /// </summary>
-    IParagraph Add();
+    void Add();
 
     /// <summary>
     ///     Removes specified paragraphs from collection.
@@ -24,19 +25,17 @@ public interface IParagraphCollection : IReadOnlyList<IParagraph>
     void Remove(IEnumerable<IParagraph> removeParagraphs);
 }
 
-internal sealed class ParagraphCollection : IParagraphCollection
+internal sealed class Paragraphs : IParagraphCollection
 {
-    private readonly ResetAbleLazy<List<SCParagraph>> paragraphs;
-    private readonly SCTextFrame textFrame;
-    private readonly SlideStructure slideStructure;
-    private readonly ITextFrameContainer textFrameContainer;
+    private readonly IEnumerable<A.Paragraph> aParagraphs;
+    private readonly ResetableLazy<List<SlideParagraph>> paragraphs;
+    private readonly SlidePart sdkSlidePart;
 
-    internal ParagraphCollection(SCTextFrame textFrame, SlideStructure slideStructure, ITextFrameContainer textFrameContainer)
+    internal Paragraphs(SlidePart sdkSlidePart, IEnumerable<A.Paragraph> aParagraphs)
     {
-        this.textFrame = textFrame;
-        this.slideStructure = slideStructure;
-        this.paragraphs = new ResetAbleLazy<List<SCParagraph>>(this.GetParagraphs);
-        this.textFrameContainer = textFrameContainer;
+        this.sdkSlidePart = sdkSlidePart;
+        this.aParagraphs = aParagraphs;
+        this.paragraphs = new ResetableLazy<List<SlideParagraph>>(this.ParseParagraphs);
     }
 
     #region Public Properties
@@ -57,26 +56,19 @@ internal sealed class ParagraphCollection : IParagraphCollection
 
     #endregion Public Properties
 
-    public IParagraph Add()
+    public void Add()
     {
         var lastAParagraph = this.paragraphs.Value.Last().AParagraph;
         var newAParagraph = (A.Paragraph)lastAParagraph.CloneNode(true);
         newAParagraph.ParagraphProperties ??= new A.ParagraphProperties();
         lastAParagraph.InsertAfterSelf(newAParagraph);
-
-        var newParagraph = new SCParagraph(newAParagraph, this.textFrame, this.slideStructure,this.textFrameContainer)
-        {
-            Text = string.Empty
-        };
-
+        
         this.paragraphs.Reset();
-
-        return newParagraph;
     }
 
     public void Remove(IEnumerable<IParagraph> removeParagraphs)
     {
-        foreach (var paragraph in removeParagraphs.Cast<SCParagraph>())
+        foreach (var paragraph in removeParagraphs.Cast<SlideParagraph>())
         {
             paragraph.AParagraph.Remove();
             paragraph.IsRemoved = true;
@@ -85,18 +77,17 @@ internal sealed class ParagraphCollection : IParagraphCollection
         this.paragraphs.Reset();
     }
 
-    private List<SCParagraph> GetParagraphs()
+    private List<SlideParagraph> ParseParagraphs()
     {
-        if (this.textFrame.TextBodyElement == null)
+        if (!this.aParagraphs.Any())
         {
-            return new List<SCParagraph>(0);
+            return new List<SlideParagraph>(0);
         }
 
-        var paraList = new List<SCParagraph>();
-        foreach (var aPara in this.textFrame.TextBodyElement.Elements<A.Paragraph>())
+        var paraList = new List<SlideParagraph>();
+        foreach (var aPara in this.aParagraphs)
         {
-            var para = new SCParagraph(aPara, this.textFrame, this.slideStructure, this.textFrameContainer);
-            para.TextChanged += this.textFrame.OnParagraphTextChanged;
+            var para = new SlideParagraph(this.sdkSlidePart, aPara);
             paraList.Add(para);
         }
 

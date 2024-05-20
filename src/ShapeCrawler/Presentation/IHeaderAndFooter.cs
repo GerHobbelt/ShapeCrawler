@@ -23,11 +23,11 @@ public interface IHeaderAndFooter
     void RemoveSlideNumber();
 }
 
-internal class HeaderAndFooter : IHeaderAndFooter
+internal sealed class HeaderAndFooter : IHeaderAndFooter
 {
-    private readonly SCPresentation presentation;
+    private readonly Presentation presentation;
 
-    internal HeaderAndFooter(SCPresentation presentation)
+    internal HeaderAndFooter(Presentation presentation)
     {
         this.presentation = presentation;
     }

@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using DocumentFormat.OpenXml.Packaging;
+using ShapeCrawler.Shapes;
 using ShapeCrawler.Shared;
+using ShapeCrawler.SlideMasters;
 
 // ReSharper disable CheckNamespace
 namespace ShapeCrawler;
@@ -11,16 +13,6 @@ namespace ShapeCrawler;
 public interface ISlideLayout
 {
     /// <summary>
-    ///     Gets parent Slide Master.
-    /// </summary>
-    ISlideMaster SlideMaster { get; }
-
-    /// <summary>
-    ///     Gets collection of shape.
-    /// </summary>
-    IShapeCollection Shapes { get; }
-
-    /// <summary>
     ///     Gets layout type.
     /// </summary>
     SCSlideLayoutType Type { get; }
@@ -29,10 +21,19 @@ public interface ISlideLayout
     ///     Gets layout name.
     /// </summary>
     string Name { get; }
+
+    /// <summary>
+    ///     Gets layout shape collection.
+    /// </summary>
+    IReadOnlyShapes Shapes { get; }
+
+    ISlideMaster SlideMaster { get; }
 }
 
-internal sealed class SCSlideLayout : SlideStructure, ISlideLayout
+internal sealed class SlideLayout : ISlideLayout
 {
+    private readonly SlideLayoutPart sdkLayoutPart;
+
     private static readonly Dictionary<string, SCSlideLayoutType> TypeMapping = new()
     {
         // https://c-rex.net/samples/ooxml/e1/Part4/OOXML_P4_DOCX_ST_SlideLayoutType_topic_ID0EKTIIB.html
@@ -74,44 +75,38 @@ internal sealed class SCSlideLayout : SlideStructure, ISlideLayout
         { "vertTx", SCSlideLayoutType.VerticalText }
     };
 
-    private readonly ResetAbleLazy<ShapeCollection> shapes;
-    private readonly SCSlideMaster slideMaster;
-
-    internal SCSlideLayout(SCSlideMaster slideMaster, SlideLayoutPart slideLayoutPart, int number)
-        : base(slideMaster.Presentation)
+    internal SlideLayout(SlideLayoutPart sdkLayoutPart)
+        : this(sdkLayoutPart, new SlideMaster(sdkLayoutPart.SlideMasterPart!))
     {
-        this.slideMaster = slideMaster;
-        this.SlideLayoutPart = slideLayoutPart;
-        this.shapes = new ResetAbleLazy<ShapeCollection>(() =>
-            new ShapeCollection(slideLayoutPart, this));
-        this.Number = number;
+    }
+
+    private SlideLayout(SlideLayoutPart sdkLayoutPart, ISlideMaster slideMaster)
+    {
+        this.sdkLayoutPart = sdkLayoutPart;
+        this.SlideMaster = slideMaster;
+        this.Shapes = new LayoutShapes(this.sdkLayoutPart);
     }
 
     public string Name => this.GetName();
 
+    public IReadOnlyShapes Shapes { get; }
+
+    public ISlideMaster SlideMaster { get; }
+
     public SCSlideLayoutType Type => this.GetLayoutType();
-
-    public override ISlideMaster SlideMaster => this.slideMaster;
-
-    public override int Number { get; set; }
-
-    public override IShapeCollection Shapes => this.shapes.Value;
-
-    internal SlideLayoutPart SlideLayoutPart { get; }
-
-    internal SCSlideMaster SlideMasterInternal => (SCSlideMaster)this.SlideMaster;
-
-    internal ShapeCollection ShapesInternal => (ShapeCollection)this.Shapes;
-
-    internal override TypedOpenXmlPart TypedOpenXmlPart => this.SlideLayoutPart;
 
     private string GetName()
     {
-        return this.SlideLayoutPart.SlideLayout.CommonSlideData!.Name!.Value!;
+        return this.sdkLayoutPart.SlideLayout.CommonSlideData!.Name!.Value!;
     }
 
     private SCSlideLayoutType GetLayoutType()
     {
-        return TypeMapping[this.SlideLayoutPart.SlideLayout.Type!];
+        return TypeMapping[this.sdkLayoutPart.SlideLayout.Type!];
+    }
+
+    internal SlideLayoutPart SDKSlideLayoutPart()
+    {
+        return this.sdkLayoutPart;
     }
 }

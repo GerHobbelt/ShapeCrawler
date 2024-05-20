@@ -1,22 +1,24 @@
 ﻿using System.Linq;
 using DocumentFormat.OpenXml;
+using ShapeCrawler.Colors;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace ShapeCrawler.Drawing;
 
 internal static class HexParser
 {
-    internal static (SCColorType, string?) FromSolidFill(TypedOpenXmlCompositeElement typedElement, SCSlideMaster slideMaster)
+    internal static (SCColorType, string?) FromSolidFill(A.SolidFill aSolidFill, P.SlideMaster pSlideMaster)
     {
-        var colorHexVariant = GetWithoutScheme(typedElement);
+        var colorHexVariant = GetWithoutScheme(aSolidFill);
         if (colorHexVariant is not null)
         {
             return ((SCColorType, string))colorHexVariant;
         }
 
-        var aSchemeColor = typedElement.GetFirstChild<A.SchemeColor>() !;
-        var fromScheme = GetByThemeColorScheme(aSchemeColor.Val!.InnerText!, slideMaster);
-        return (SCColorType.Scheme, fromScheme);
+        var aSchemeColor = aSolidFill.GetFirstChild<A.SchemeColor>() !;
+        var fromScheme = GetByThemeColorScheme(aSchemeColor.Val!, pSlideMaster); 
+        return (SCColorType.Theme, fromScheme);
     }
 
     internal static (SCColorType, string)? GetWithoutScheme(TypedOpenXmlCompositeElement typedElement)
@@ -36,7 +38,7 @@ internal static class HexParser
         {
             colorHexVariant = aSysClr.LastColor!;
             {
-                return (SCColorType.System, colorHexVariant);
+                return (SCColorType.Standard, colorHexVariant);
             }
         }
 
@@ -45,35 +47,35 @@ internal static class HexParser
         {
             var coloName = aPresetColor.Val!.Value.ToString();
             {
-                return (SCColorType.Preset, SCColorTranslator.HexFromName(coloName));
+                return (SCColorType.Preset, ColorTranslator.HexFromName(coloName));
             }
         }
 
         return null;
     }
 
-    private static string? GetByThemeColorScheme(string schemeColor, SCSlideMaster slideMaster)
+    private static string? GetByThemeColorScheme(string schemeColor, P.SlideMaster pSlideMaster)
     {
-        var hex = GetThemeColorByString(schemeColor, slideMaster);
+        var hex = GetThemeColorByString(schemeColor, pSlideMaster);
 
         if (hex == null)
         {
-            hex = GetThemeMappedColor(schemeColor, slideMaster);
+            hex = GetThemeMappedColor(schemeColor, pSlideMaster);
         }
 
         return hex ?? null;
     }
 
-    private static string? GetThemeMappedColor(string fontSchemeColor, SCSlideMaster slideMaster)
+    private static string? GetThemeMappedColor(string fontSchemeColor, P.SlideMaster pSlideMaster)
     {
-        var slideMasterPColorMap = slideMaster.PSlideMaster.ColorMap;
+        var slideMasterPColorMap = pSlideMaster.ColorMap;
         var targetSchemeColor = slideMasterPColorMap?.GetAttributes().FirstOrDefault(a => a.LocalName == fontSchemeColor);
-        return GetThemeColorByString(targetSchemeColor?.Value?.ToString() !, slideMaster);
+        return GetThemeColorByString(targetSchemeColor?.Value !, pSlideMaster);
     }
 
-    private static string? GetThemeColorByString(string schemeColor, SCSlideMaster slideMaster)
+    private static string? GetThemeColorByString(string schemeColor, P.SlideMaster pSlideMaster)
     {
-        var themeAColorScheme = slideMaster.ThemePart.Theme.ThemeElements!.ColorScheme!;
+        var themeAColorScheme = pSlideMaster.SlideMasterPart!.ThemePart!.Theme.ThemeElements!.ColorScheme!;
         var color = themeAColorScheme.Elements<A.Color2Type>().FirstOrDefault(c => c.LocalName == schemeColor);
         var hex = color?.RgbColorModelHex?.Val?.Value ?? color?.SystemColor?.LastColor?.Value;
         return hex;

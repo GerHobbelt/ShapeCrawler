@@ -13,9 +13,9 @@ public class BulletTests : SCTest
     public void Type_Setter_updates_bullet_type()
     {
         // Arrange
-        var pptxStream = GetInputStream("autoshape-case003.pptx");
-        var pres = SCPresentation.Open(pptxStream);
-        var shape = pres.Slides[0].Shapes.GetByName<IAutoShape>("AutoShape 1");
+        var pptxStream = StreamOf("autoshape-case003.pptx");
+        var pres = new SCPresentation(pptxStream);
+        var shape = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 1");
         var bullet = shape.TextFrame!.Paragraphs[0].Bullet;
 
         // Act
@@ -28,8 +28,8 @@ public class BulletTests : SCTest
 
         var savedPreStream = new MemoryStream();
         pres.SaveAs(savedPreStream);
-        var newPresentation = SCPresentation.Open(savedPreStream);
-        shape = newPresentation.Slides[0].Shapes.GetByName<IAutoShape>("AutoShape 1");
+        var newPresentation = new SCPresentation(savedPreStream);
+        shape = newPresentation.Slides[0].Shapes.GetByName<IShape>("AutoShape 1");
         bullet = shape.TextFrame!.Paragraphs[0].Bullet;
         bullet.Type.Should().Be(SCBulletType.Character);
         bullet.Character.Should().Be("*");
@@ -40,32 +40,33 @@ public class BulletTests : SCTest
     {
         // Arrange
         var mStream = new MemoryStream();
-        var pptx = GetInputStream("020.pptx");
-        IPresentation presentation = SCPresentation.Open(pptx);
-        IAutoShape placeholderAutoShape = (IAutoShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
-        IParagraph paragraph = placeholderAutoShape.TextFrame.Paragraphs.Add();
+        var pptx = StreamOf("020.pptx");
+        IPresentation presentation = new SCPresentation(pptx);
+        IShape placeholderAutoShape = (IShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
+        placeholderAutoShape.TextFrame.Paragraphs.Add();
+        var addedParagraph = placeholderAutoShape.TextFrame.Paragraphs.Last();
 
         // Act
-        paragraph.Bullet.Type = SCBulletType.Character;
-        paragraph.Bullet.Character = "*";
-        paragraph.Bullet.Size = 100;
-        paragraph.Bullet.FontName = "Tahoma";
+        addedParagraph.Bullet.Type = SCBulletType.Character;
+        addedParagraph.Bullet.Character = "*";
+        addedParagraph.Bullet.Size = 100;
+        addedParagraph.Bullet.FontName = "Tahoma";
 
         // Assert
-        paragraph.Bullet.Type.Should().Be(SCBulletType.Character);
-        paragraph.Bullet.Character.Should().Be("*");
-        paragraph.Bullet.Size.Should().Be(100);
-        paragraph.Bullet.FontName.Should().Be("Tahoma");
+        addedParagraph.Bullet.Type.Should().Be(SCBulletType.Character);
+        addedParagraph.Bullet.Character.Should().Be("*");
+        addedParagraph.Bullet.Size.Should().Be(100);
+        addedParagraph.Bullet.FontName.Should().Be("Tahoma");
 
         presentation.SaveAs(mStream);
 
-        presentation = SCPresentation.Open(mStream);
-        placeholderAutoShape = (IAutoShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
-        paragraph = placeholderAutoShape.TextFrame.Paragraphs.Last();
-        paragraph.Bullet.Type.Should().Be(SCBulletType.Character);
-        paragraph.Bullet.Character.Should().Be("*");
-        paragraph.Bullet.Size.Should().Be(100);
-        paragraph.Bullet.FontName.Should().Be("Tahoma");
+        presentation = new SCPresentation(mStream);
+        placeholderAutoShape = (IShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
+        addedParagraph = placeholderAutoShape.TextFrame.Paragraphs.Last();
+        addedParagraph.Bullet.Type.Should().Be(SCBulletType.Character);
+        addedParagraph.Bullet.Character.Should().Be("*");
+        addedParagraph.Bullet.Size.Should().Be(100);
+        addedParagraph.Bullet.FontName.Should().Be("Tahoma");
     }
         
     [Test]
@@ -73,28 +74,29 @@ public class BulletTests : SCTest
     {
         // Arrange
         var mStream = new MemoryStream();
-        var pptx = GetInputStream("020.pptx");
-        IPresentation presentation = SCPresentation.Open(pptx);
-        IAutoShape placeholderAutoShape = (IAutoShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
-        IParagraph paragraph = placeholderAutoShape.TextFrame.Paragraphs.Add();
+        var pptx = StreamOf("020.pptx");
+        IPresentation presentation = new SCPresentation(pptx);
+        IShape placeholderAutoShape = (IShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
+        placeholderAutoShape.TextFrame.Paragraphs.Add();
+        var addedParagraph = placeholderAutoShape.TextFrame.Paragraphs.Last();
 
         // Act
-        paragraph.Bullet.Type = SCBulletType.Numbered;
-        paragraph.Bullet.Size = 100;
-        paragraph.Bullet.FontName = "Tahoma";
+        addedParagraph.Bullet.Type = SCBulletType.Numbered;
+        addedParagraph.Bullet.Size = 100;
+        addedParagraph.Bullet.FontName = "Tahoma";
 
         // Assert
-        paragraph.Bullet.Type.Should().Be(SCBulletType.Numbered);
-        paragraph.Bullet.Size.Should().Be(100);
-        paragraph.Bullet.FontName.Should().Be("Tahoma");
+        addedParagraph.Bullet.Type.Should().Be(SCBulletType.Numbered);
+        addedParagraph.Bullet.Size.Should().Be(100);
+        addedParagraph.Bullet.FontName.Should().Be("Tahoma");
 
         presentation.SaveAs(mStream);
 
-        presentation = SCPresentation.Open(mStream);
-        placeholderAutoShape = (IAutoShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
-        paragraph = placeholderAutoShape.TextFrame.Paragraphs.Last();
-        paragraph.Bullet.Type.Should().Be(SCBulletType.Numbered);
-        paragraph.Bullet.Size.Should().Be(100);
-        paragraph.Bullet.FontName.Should().Be("Tahoma");
+        presentation = new SCPresentation(mStream);
+        placeholderAutoShape = (IShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
+        addedParagraph = placeholderAutoShape.TextFrame.Paragraphs.Last();
+        addedParagraph.Bullet.Type.Should().Be(SCBulletType.Numbered);
+        addedParagraph.Bullet.Size.Should().Be(100);
+        addedParagraph.Bullet.FontName.Should().Be("Tahoma");
     }
 }
