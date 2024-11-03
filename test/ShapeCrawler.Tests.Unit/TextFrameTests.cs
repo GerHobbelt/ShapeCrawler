@@ -113,7 +113,6 @@ namespace ShapeCrawler.Tests.Unit.xUnit
             textFrame.Text = "AutoShape 4 some text";
 
             // Assert
-            // TODO: Investigate this wide range
             shape.Height.Should().BeApproximately(51.48m,0.01m);
             shape.Y.Should().Be(149m);
             pres.Validate();
@@ -165,10 +164,6 @@ namespace ShapeCrawler.Tests.Unit.xUnit
             textFrame.AutofitType = AutofitType.Resize;
 
             // Assert
-            // TODO: Investigate wide approximation range 
-            // NOTE: When performing this operation in Powerpoint, the resulting shape is 0.29 inches. (27.84)
-            // In current ShapeCrawler code, it's 0.41 inches, (39.36). 
-            // Oddly the original value isn't right either.
             shape.Height.Should().BeApproximately(40.48m, 0.01m);
             pres.Validate();
         }
@@ -303,7 +298,6 @@ namespace ShapeCrawler.Tests.Unit.xUnit
             textFrame.Text = "Some sentence. Some sentence";
 
             // Assert
-            // TODO: Investigate wide approximation range
             shape.Height.Should().BeApproximately(93.48m,0.01m);
         }
         
@@ -510,6 +504,135 @@ namespace ShapeCrawler.Tests.Unit.xUnit
             
             // Assert
             bottomMargin.Should().Be((decimal)expectedMargin);
+        }
+
+        [Test]
+        public void SlideNotes_getter_returns_notes()
+        {
+            // Arrange
+            var pptxStream = StreamOf("056_slide-notes.pptx");
+            var pres = new Presentation(pptxStream);
+            var slide = pres.Slides[0];
+
+            // Act
+            var notes = slide.Notes;
+
+            // Assert
+            notes.Paragraphs.Should().HaveCount(4);
+            notes.Text.Should().Contain("NOTES LINE 1");
+        }
+
+        [Test]
+        public void SlideNotes_getter_enables_changing_notes()
+        {
+            // Arrange
+            var pptxStream = StreamOf("056_slide-notes.pptx");
+            var pres = new Presentation(pptxStream);
+            var slide = pres.Slides[0];
+            var notes = slide.Notes;
+            var expected = string.Join(Environment.NewLine, new[] { "0", "1", "2", "3" });
+
+            // Act
+            notes.Paragraphs[0].Text = "0";
+            notes.Paragraphs[1].Text = "1";
+            notes.Paragraphs[2].Text = "2";
+            notes.Paragraphs[3].Text = "3";
+
+            // Assert
+            notes.Paragraphs.Should().HaveCount(4);
+            notes.Text.Should().Be(expected);
+        }
+
+        [Test]
+        public void SlideNotes_getter_returns_null_if_no_notes()
+        {
+            // Arrange
+            var pptxStream = StreamOf("003.pptx");
+            var pres = new Presentation(pptxStream);
+            var slide = pres.Slides[0];
+
+            // Act
+            var notes = slide.Notes;
+
+            // Assert
+            notes.Should().BeNull();
+        }
+
+        [Test]
+        public void NewPresentation_has_no_notes()
+        {
+            // Arrange
+            var pres = new Presentation();
+            var slide = pres.Slides[0];
+
+            // Act
+            var notes = slide.Notes;
+
+            // Assert
+            notes.Should().BeNull();
+        }
+
+        [Test]
+        public void SlideAddNotes_adds_notes()
+        {
+            // Arrange
+            var pres = new Presentation();
+            var slide = pres.Slides[0];
+
+            // Act
+            slide.AddNotesIfEmpty();
+            var notes = slide.Notes;
+
+            // Assert
+            notes.Text.Should().Be(String.Empty);
+            pres.Validate();
+        }
+
+        [Test]
+        public void SlideAddNotes_can_change_notes()
+        {
+            // Arrange
+            var pres = new Presentation();
+            var slide = pres.Slides[0];
+            slide.AddNotesIfEmpty();
+            var notes = slide.Notes;
+            var expected = "SlideAddNotes_can_change_notes";
+
+            // Act
+            notes.Text = expected;
+
+            // Assert
+            notes.Text.Should().Be(expected);
+            pres.Validate();
+
+            // Just in case you want to check it!
+            // pres.SaveAs($"{Environment.GetEnvironmentVariable("TEMP")}\\{expected}.pptx");
+        }
+
+        [Test]
+        public void SlideAddNotes_can_change_notes_with_many_lines()
+        {
+            // Arrange
+            var pres = new Presentation();
+            var slide = pres.Slides[0];
+            slide.AddNotesIfEmpty();
+            var notes = slide.Notes;
+            var expected = string.Join(Environment.NewLine, new[] { "1", "2", "3" });
+
+            // Act
+            notes.Paragraphs.Last().Text = "1";
+            notes.Paragraphs.Add();
+            notes.Paragraphs.Last().Text = "2";
+            notes.Paragraphs.Add();
+            notes.Paragraphs.Last().Text = "3";
+
+            // Assert
+            notes.Paragraphs.Should().HaveCount(3);
+            notes.Text.Should().Be(expected);
+            pres.Validate();
+
+            // Just in case you want to check it!
+            // pres.SaveAs($"{Environment.GetEnvironmentVariable("TEMP")}\\SlideAddNotes_can_change_notes_with_many_lines.pptx");
         }
     }
 }

@@ -3,14 +3,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using ShapeCrawler.Drawing;
 using ShapeCrawler.Exceptions;
+using ShapeCrawler.Extensions;
 using ShapeCrawler.ShapeCollection;
 using ShapeCrawler.Shapes;
 using ShapeCrawler.Shared;
 using SkiaSharp;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 // ReSharper disable CheckNamespace
 // ReSharper disable PossibleMultipleEnumeration
@@ -54,6 +58,11 @@ internal sealed class Slide : ISlide
     {
         get => this.GetCustomData();
         set => this.SetCustomData(value);
+    }
+
+    public ITextFrame? Notes
+    {
+        get => this.GetNotes();
     }
 
     public bool Hidden() => this.SDKSlidePart.Slide.Show is not null && !this.SDKSlidePart.Slide.Show.Value;
@@ -123,6 +132,47 @@ internal sealed class Slide : ISlide
 
         return returnList;
     }
+
+    /// <summary>
+    ///     Ensure this slide has a notes slide, adding one if needed.
+    /// </summary>
+    public void AddNotesIfEmpty()
+    {
+        if (this.SDKSlidePart.NotesSlidePart is not null)
+        {
+            return;
+        }
+
+        // https://learn.microsoft.com/en-us/office/open-xml/presentation/working-with-notes-slides
+        var rid = this.SDKSlidePart.NextRelationshipId();
+        NotesSlidePart notesSlidePart1 = this.SDKSlidePart.AddNewPart<NotesSlidePart>(rid);
+        NotesSlide notesSlide = new NotesSlide
+        (
+            new CommonSlideData
+            (
+                new ShapeTree
+                (
+                    new P.NonVisualGroupShapeProperties
+                    (
+                        new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = string.Empty },
+                        new P.NonVisualGroupShapeDrawingProperties(),
+                        new ApplicationNonVisualDrawingProperties()),
+                    new GroupShapeProperties(new TransformGroup()),
+                    new P.Shape(
+                        new P.NonVisualShapeProperties
+                        (
+                            new P.NonVisualDrawingProperties() { Id = (UInt32Value)2U, Name = "Notes Placeholder 2" },
+                            new P.NonVisualShapeDrawingProperties(new ShapeLocks() { NoGrouping = true }),
+                            new ApplicationNonVisualDrawingProperties(new PlaceholderShape() { Type = PlaceholderValues.Body })),
+                        new P.ShapeProperties(),
+                        new P.TextBody
+                        (
+                            new BodyProperties(),
+                            new ListStyle(),
+                            new A.Paragraph(new EndParagraphRunProperties()))))),
+            new ColorMapOverride(new MasterColorMapping()));
+        notesSlidePart1.NotesSlide = notesSlide;
+    }
     
     internal PresentationDocument SDKPresentationDocument() => (PresentationDocument)this.SDKSlidePart.OpenXmlPackage;
 
@@ -147,6 +197,24 @@ internal sealed class Slide : ISlide
                     break;
             }
         }
+    }
+
+    private ITextFrame? GetNotes()
+    {
+        var notes = this.SDKSlidePart.NotesSlidePart;
+
+        if (notes is null)
+        {
+            return null;
+        }
+
+        var shapes = new ShapeCollection.Shapes(notes);
+        var notesPlaceholder = shapes
+            .FirstOrDefault(x => 
+                x.IsPlaceholder && 
+                x.IsTextHolder && 
+                x.PlaceholderType == Placeholders.PlaceholderType.Text);
+        return notesPlaceholder?.TextFrame;
     }
 
     private int ParseNumber()
