@@ -13,6 +13,7 @@ using ShapeCrawler.Charts;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
 using ShapeCrawler.Shared;
+using ShapeCrawler.Tables;
 using ShapeCrawler.Units;
 using SkiaSharp;
 using Svg;
@@ -37,9 +38,9 @@ internal sealed class SlideShapes : ISlideShapes
     }
 
     public int Count => this.shapes.Count;
-    
+
     public IShape this[int index] => this.shapes[index];
-    
+
     public void Add(IShape addingShape)
     {
         var pShapeTree = this.sdkSlidePart.Slide.CommonSlideData!.ShapeTree!;
@@ -92,7 +93,7 @@ internal sealed class SlideShapes : ISlideShapes
         var appNonVisualDrawingPropsExtensionList = new P.ApplicationNonVisualDrawingPropertiesExtensionList();
 
         var appNonVisualDrawingPropsExtension = new P.ApplicationNonVisualDrawingPropertiesExtension
-            { Uri = "{DAA4B4D4-6D71-4841-9C94-3DE7FCFB9230}" };
+        { Uri = "{DAA4B4D4-6D71-4841-9C94-3DE7FCFB9230}" };
 
         var media = new DocumentFormat.OpenXml.Office2010.PowerPoint.Media { Embed = mediaRef.Id };
         media.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
@@ -110,7 +111,7 @@ internal sealed class SlideShapes : ISlideShapes
         var nonVisualPictureProps = pPicture.NonVisualPictureProperties!;
         var nonVisualDrawingProps = pPicture.NonVisualDrawingProperties();
         var hyperlinkOnClick = new A.HyperlinkOnClick
-            { Id = string.Empty, Action = "ppaction://media" };
+        { Id = string.Empty, Action = "ppaction://media" };
         nonVisualDrawingProps.Append(hyperlinkOnClick);
         nonVisualPictureProps.Append(new P.NonVisualPictureDrawingProperties());
 
@@ -132,20 +133,17 @@ internal sealed class SlideShapes : ISlideShapes
         {
             var height = skBitmap.Height;
             var width = skBitmap.Width;
-            var resize = false;
 
             if (height > 500)
             {
                 height = 500;
                 width = (int)(height * skBitmap.Width / (decimal)skBitmap.Height);
-                resize = true;
             }
 
             if (width > 500)
             {
                 width = 500;
                 height = (int)(width * skBitmap.Height / (decimal)skBitmap.Width);
-                resize = true;
             }
 
             var xEmu = UnitConverter.HorizontalPixelToEmu(100);
@@ -153,19 +151,7 @@ internal sealed class SlideShapes : ISlideShapes
             var cxEmu = UnitConverter.HorizontalPixelToEmu(width);
             var cyEmu = UnitConverter.VerticalPixelToEmu(height);
 
-            P.Picture? pPicture;
-            if (resize)
-            {
-                skBitmap.Resize(new SKSizeI(width:width, height:height), SKFilterQuality.High);
-                var resizedStream = new MemoryStream();
-                skBitmap.Encode(resizedStream, SKEncodedImageFormat.Png, 95);
-                resizedStream.Position = 0;
-                pPicture = this.CreatePPicture(resizedStream, "Picture");
-            }
-            else
-            {
-                pPicture = this.CreatePPicture(imageStream, "Picture");
-            }
+            var pPicture = this.CreatePPicture(imageStream, "Picture");
 
             var transform2D = pPicture.ShapeProperties!.Transform2D!;
             transform2D.Offset!.X = xEmu;
@@ -194,7 +180,7 @@ internal sealed class SlideShapes : ISlideShapes
 
     public void AddBarChart(BarChartType barChartType)
     {
-        var chartFactory = new ChartGraphicFrameHandler();
+        var chartFactory = default(ChartGraphicFrameHandler);
         var newPGraphicFrame = chartFactory.Create(this.sdkSlidePart);
 
         this.sdkSlidePart.Slide.CommonSlideData!.ShapeTree!.Append(newPGraphicFrame);
@@ -224,7 +210,7 @@ internal sealed class SlideShapes : ISlideShapes
         var shapeId = (uint)this.shapes.Max(sp => sp.Id) + 1;
         P.NonVisualDrawingProperties nonVisualDrawingProperties2 = new() { Id = shapeId, Name = $"Video{shapeId}" };
         var hyperlinkOnClick1 = new A.HyperlinkOnClick()
-            { Id = string.Empty, Action = "ppaction://media" };
+        { Id = string.Empty, Action = "ppaction://media" };
 
         A.NonVisualDrawingPropertiesExtensionList
             nonVisualDrawingPropertiesExtensionList1 = new();
@@ -286,7 +272,7 @@ internal sealed class SlideShapes : ISlideShapes
         transform2D1.Append(extents2);
 
         A.PresetGeometry presetGeometry1 = new()
-            { Preset = A.ShapeTypeValues.Rectangle };
+        { Preset = A.ShapeTypeValues.Rectangle };
         A.AdjustValueList adjustValueList1 = new();
 
         presetGeometry1.Append(adjustValueList1);
@@ -420,6 +406,12 @@ internal sealed class SlideShapes : ISlideShapes
 
     public void AddTable(int x, int y, int columnsCount, int rowsCount)
     {
+        // default style (to keep it how it was)
+        this.AddTable(x, y, columnsCount, rowsCount, TableStyle.MediumStyle2Accent1);
+    }
+
+    public void AddTable(int x, int y, int columnsCount, int rowsCount, ITableStyle style)
+    {
         var shapeName = this.GenerateNextTableName();
         var xEmu = UnitConverter.HorizontalPixelToEmu(x);
         var yEmu = UnitConverter.VerticalPixelToEmu(y);
@@ -427,7 +419,8 @@ internal sealed class SlideShapes : ISlideShapes
 
         var graphicFrame = new P.GraphicFrame();
         var nonVisualGraphicFrameProperties = new P.NonVisualGraphicFrameProperties();
-        var nonVisualDrawingProperties = new P.NonVisualDrawingProperties { Id = (uint)this.NextShapeId(), Name = shapeName };
+        var nonVisualDrawingProperties = new P.NonVisualDrawingProperties
+        { Id = (uint)this.NextShapeId(), Name = shapeName };
         var nonVisualGraphicFrameDrawingProperties = new P.NonVisualGraphicFrameDrawingProperties();
         var applicationNonVisualDrawingProperties = new P.ApplicationNonVisualDrawingProperties();
         nonVisualGraphicFrameProperties.Append(nonVisualDrawingProperties);
@@ -440,12 +433,12 @@ internal sealed class SlideShapes : ISlideShapes
 
         var graphic = new A.Graphic();
         var graphicData = new A.GraphicData
-            { Uri = "http://schemas.openxmlformats.org/drawingml/2006/table" };
+        { Uri = "http://schemas.openxmlformats.org/drawingml/2006/table" };
         var aTable = new A.Table();
 
         var tableProperties = new A.TableProperties { FirstRow = true, BandRow = true };
         var tableStyleId = new A.TableStyleId
-            { Text = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" };
+        { Text = style.GUID };
         tableProperties.Append(tableStyleId);
 
         var tableGrid = new A.TableGrid();
@@ -474,43 +467,60 @@ internal sealed class SlideShapes : ISlideShapes
 
     public void Remove(IShape shape)
     {
-        if (this.shapes.Any(x => x != shape))
+        var removingShape = this.shapes.FirstOrDefault(sp => sp.Id == shape.Id);
+        if (removingShape == null)
         {
             throw new SCException("Shape is not found.");
         }
 
-        if (shape is IRemoveable removeable)
-        {
-            removeable.Remove();
-        }
-
-        throw new SCException("Shape is not cannot be removed.");
+        removingShape.Remove();
     }
-    
-    public T GetById<T>(int id) where T : IShape => this.shapes.GetById<T>(id);
-    
-    public T? TryGetById<T>(int id) where T : IShape => this.shapes.TryGetById<T>(id);
-    
-    public T GetByName<T>(string name) where T : IShape => this.shapes.GetByName<T>(name);
-    
-    public T? TryGetByName<T>(string name) where T : IShape => this.shapes.TryGetByName<T>(name);
-    
+
+    public T GetById<T>(int id) 
+        where T : IShape => this.shapes.GetById<T>(id);
+
+    public T? TryGetById<T>(int id) 
+        where T : IShape => this.shapes.TryGetById<T>(id);
+
+    public T GetByName<T>(string name) 
+        where T : IShape => this.shapes.GetByName<T>(name);
+
+    public T? TryGetByName<T>(string name) 
+        where T : IShape => this.shapes.TryGetByName<T>(name);
+
     public IShape GetByName(string name) => this.shapes.GetByName(name);
 
-    public T Last<T>() where T : IShape => this.shapes.Last<T>();
+    public T Last<T>() 
+        where T : IShape => this.shapes.Last<T>();
 
     public IEnumerator<IShape> GetEnumerator() => this.shapes.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
+    private static string Mime(Stream imageStream)
+    {
+        imageStream.Seek(0, SeekOrigin.Begin);
+        using var codec = SKCodec.Create(imageStream);
+        var mime = codec.EncodedFormat switch
+        {
+            SKEncodedImageFormat.Jpeg => "image/jpeg",
+            SKEncodedImageFormat.Png => "image/png",
+            SKEncodedImageFormat.Gif => "image/gif",
+            SKEncodedImageFormat.Bmp => "image/bmp",
+            _ => "image/png"
+        };
+
+        return mime;
+    }
+
     private static SizeF GetSvgPixelSize(SvgDocument image)
     {
         // Default base size come from viewbox if specified, else use the raw
         // image bounds
-        var bounds = 
-            (image.ViewBox.Width > 0 && image.ViewBox.Height > 0) ?
-            new SizeF(width:image.ViewBox.Width, height:image.ViewBox.Height) :
-            new SizeF(width:image.Bounds.Width, height:image.Bounds.Height);
+        var bounds =
+            (image.ViewBox.Width > 0 && image.ViewBox.Height > 0)
+                ? new SizeF(width: image.ViewBox.Width, height: image.ViewBox.Height)
+                : new SizeF(width: image.Bounds.Width, height: image.Bounds.Height);
 
         return new SizeF()
         {
@@ -518,7 +528,7 @@ internal sealed class SlideShapes : ISlideShapes
             {
                 SvgUnitType.Percentage => bounds.Width * image.Width.Value / 100.0f,
                 SvgUnitType.User or
-                SvgUnitType.Pixel => image.Width.Value,
+                    SvgUnitType.Pixel => image.Width.Value,
                 SvgUnitType.Inch => UnitConverter.InchToPixelF(image.Width.Value),
                 SvgUnitType.Centimeter => UnitConverter.CentimeterToPixelF(image.Width.Value),
                 SvgUnitType.Millimeter => UnitConverter.CentimeterToPixelF(image.Width.Value / 10.0f),
@@ -529,11 +539,11 @@ internal sealed class SlideShapes : ISlideShapes
             {
                 SvgUnitType.Percentage => bounds.Height * image.Height.Value / 100.0f,
                 SvgUnitType.User or
-                SvgUnitType.Pixel => image.Height.Value,
+                    SvgUnitType.Pixel => image.Height.Value,
                 SvgUnitType.Inch => UnitConverter.InchToPixelF(image.Height.Value),
                 SvgUnitType.Centimeter => UnitConverter.CentimeterToPixelF(image.Height.Value),
                 SvgUnitType.Millimeter => UnitConverter.CentimeterToPixelF(image.Height.Value / 10.0f),
-                SvgUnitType.Point => new Points(image.Height.Value).AsPixels(), 
+                SvgUnitType.Point => new Points(image.Height.Value).AsPixels(),
                 _ => throw new NotImplementedException()
             }
         };
@@ -585,8 +595,9 @@ internal sealed class SlideShapes : ISlideShapes
     private P.Picture CreatePPicture(Stream imageStream, string shapeName)
     {
         var imgPartRId = this.sdkSlidePart.NextRelationshipId();
-
-        var mime = Mime(imageStream);
+        var mStream = new MemoryStream();
+        imageStream.CopyTo(mStream);
+        var mime = Mime(mStream);
         var imagePart = this.sdkSlidePart.AddNewPart<ImagePart>(mime, imgPartRId);
         imageStream.Position = 0;
         imagePart.FeedData(imageStream);
@@ -595,7 +606,8 @@ internal sealed class SlideShapes : ISlideShapes
         var shapeId = (uint)this.NextShapeId();
         var nonVisualDrawingProperties = new P.NonVisualDrawingProperties
         {
-            Id = shapeId, Name = $"{shapeName} {shapeId}"
+            Id = shapeId,
+            Name = $"{shapeName} {shapeId}"
         };
         var nonVisualPictureDrawingProperties = new P.NonVisualPictureDrawingProperties();
         var appNonVisualDrawingProperties = new P.ApplicationNonVisualDrawingProperties();
@@ -615,7 +627,7 @@ internal sealed class SlideShapes : ISlideShapes
             new A.Extents { Cx = 0, Cy = 0 });
 
         var presetGeometry = new A.PresetGeometry
-            { Preset = A.ShapeTypeValues.Rectangle };
+        { Preset = A.ShapeTypeValues.Rectangle };
         var shapeProperties = new P.ShapeProperties();
         shapeProperties.Append(transform2D);
         shapeProperties.Append(presetGeometry);
@@ -628,21 +640,6 @@ internal sealed class SlideShapes : ISlideShapes
         this.sdkSlidePart.Slide.CommonSlideData!.ShapeTree!.Append(pPicture);
 
         return pPicture;
-    }
-
-    private static string Mime(Stream imageStream)
-    {
-        using var codec = SKCodec.Create(imageStream);
-        var mime = codec.EncodedFormat switch
-        {
-            SKEncodedImageFormat.Jpeg => "image/jpeg",
-            SKEncodedImageFormat.Png => "image/png",
-            SKEncodedImageFormat.Gif => "image/gif",
-            SKEncodedImageFormat.Bmp => "image/bmp",
-            _ => "image/png"
-        };
-        
-        return mime;
     }
 
     private void AddPictureSvg(SvgDocument image, Stream svgStream)
@@ -660,7 +657,7 @@ internal sealed class SlideShapes : ISlideShapes
             size.Height = 500.0f;
             size.Width = size.Height * image.Width.Value / image.Height.Value;
         }
-        
+
         if (size.Width > 500.0f)
         {
             size.Width = 500.0f;
@@ -706,14 +703,17 @@ internal sealed class SlideShapes : ISlideShapes
         var shapeId = (uint)this.NextShapeId();
         var nonVisualDrawingProperties = new P.NonVisualDrawingProperties
         {
-            Id = shapeId, Name = $"{shapeName} {shapeId}"
+            Id = shapeId,
+            Name = $"{shapeName} {shapeId}"
         };
         var nonVisualPictureDrawingProperties = new P.NonVisualPictureDrawingProperties();
         var appNonVisualDrawingProperties = new P.ApplicationNonVisualDrawingProperties();
 
-        A.NonVisualDrawingPropertiesExtensionList aNonVisualDrawingPropertiesExtensionList = new A.NonVisualDrawingPropertiesExtensionList();
+        A.NonVisualDrawingPropertiesExtensionList aNonVisualDrawingPropertiesExtensionList =
+            new A.NonVisualDrawingPropertiesExtensionList();
 
-        A.NonVisualDrawingPropertiesExtension aNonVisualDrawingPropertiesExtension = new A.NonVisualDrawingPropertiesExtension();
+        A.NonVisualDrawingPropertiesExtension aNonVisualDrawingPropertiesExtension =
+            new A.NonVisualDrawingPropertiesExtension();
         aNonVisualDrawingPropertiesExtension.Uri = "{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}";
 
         A16.CreationId a16CreationId = new A16.CreationId();
@@ -786,7 +786,7 @@ internal sealed class SlideShapes : ISlideShapes
             new A.Extents { Cx = 0, Cy = 0 });
 
         var presetGeometry = new A.PresetGeometry
-            { Preset = A.ShapeTypeValues.Rectangle };
+        { Preset = A.ShapeTypeValues.Rectangle };
 
         A.AdjustValueList aAdjustValueList = new A.AdjustValueList();
 

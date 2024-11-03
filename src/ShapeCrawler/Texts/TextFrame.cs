@@ -18,6 +18,8 @@ internal sealed record TextFrame : ITextBox
     private readonly OpenXmlPart sdkTypedOpenXmlPart;
     private readonly OpenXmlElement sdkTextBody;
 
+    private TextVerticalAlignment? valignment;
+
     internal TextFrame(OpenXmlPart sdkTypedOpenXmlPart, OpenXmlElement sdkTextBody)
     {
         this.sdkTypedOpenXmlPart = sdkTypedOpenXmlPart;
@@ -122,14 +124,14 @@ internal sealed record TextFrame : ITextBox
                     aBodyPr.Append(shrink);
                     break;
                 case AutofitType.Resize:
-                {
-                    dontAutofit?.Remove();
-                    shrink?.Remove();
-                    resize = new A.ShapeAutoFit();
-                    aBodyPr.Append(resize);
-                    this.ResizeParentShape();
-                    break;
-                }
+                    {
+                        dontAutofit?.Remove();
+                        shrink?.Remove();
+                        resize = new A.ShapeAutoFit();
+                        aBodyPr.Append(resize);
+                        this.ResizeParentShape();
+                        break;
+                    }
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(value), value, null);
@@ -164,6 +166,56 @@ internal sealed record TextFrame : ITextBox
     public bool TextWrapped => this.IsTextWrapped();
 
     public string SDKXPath => new XmlPath(this.sdkTextBody).XPath;
+
+    public TextVerticalAlignment VerticalAlignment
+    {
+        get
+        {
+            if (this.valignment.HasValue)
+            {
+                return this.valignment.Value;
+            }
+
+            var aBodyPr = this.sdkTextBody.GetFirstChild<A.BodyProperties>();
+
+            if (aBodyPr!.Anchor!.Value == A.TextAnchoringTypeValues.Center)
+            {
+                this.valignment = TextVerticalAlignment.Middle;
+            }
+            else if (aBodyPr!.Anchor!.Value == A.TextAnchoringTypeValues.Bottom)
+            {
+                this.valignment = TextVerticalAlignment.Bottom;
+            }
+            else
+            {
+                this.valignment = TextVerticalAlignment.Top;
+            }
+
+            return this.valignment.Value;
+        }
+
+        set => this.SetVerticalAlignment(value);
+    }
+
+    private void SetVerticalAlignment(TextVerticalAlignment alignmentValue)
+    {
+        var aTextAlignmentTypeValue = alignmentValue switch
+        {
+            TextVerticalAlignment.Top => A.TextAnchoringTypeValues.Top,
+            TextVerticalAlignment.Middle => A.TextAnchoringTypeValues.Center,
+            TextVerticalAlignment.Bottom => A.TextAnchoringTypeValues.Bottom,
+            _ => throw new ArgumentOutOfRangeException(nameof(alignmentValue))
+        };
+
+        var aBodyPr = this.sdkTextBody.GetFirstChild<A.BodyProperties>();
+
+        if (aBodyPr is not null)
+        {
+            aBodyPr.Anchor = aTextAlignmentTypeValue;
+        }
+
+        this.valignment = alignmentValue;
+    }
 
     public void ResizeParentShape()
     {

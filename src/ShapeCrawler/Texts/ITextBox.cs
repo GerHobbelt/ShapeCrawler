@@ -17,6 +17,11 @@ public interface ITextBox
     string Text { get; set; }
 
     /// <summary>
+    ///     Gets or sets the text vertical alignment.
+    /// </summary>
+    TextVerticalAlignment VerticalAlignment { get; set; }
+
+    /// <summary>
     ///     Gets or sets the Autofit type.
     /// </summary>
     AutofitType AutofitType { get; set; }
@@ -45,7 +50,7 @@ public interface ITextBox
     ///     Gets a value indicating whether the text is wrapped in the shape.
     /// </summary>
     bool TextWrapped { get; }
-    
+
     /// <summary>
     ///     Gets XPath.
     /// </summary>
