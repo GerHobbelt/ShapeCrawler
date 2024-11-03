@@ -1,16 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Xml;
 using FluentAssertions;
 using NUnit.Framework;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Shapes;
 using ShapeCrawler.Shared;
-using ShapeCrawler.Tests.Shared;
 using ShapeCrawler.Tests.Unit.Helpers;
-using ShapeCrawler.Tests.Unit.Helpers.Attributes;
-using Xunit;
-using Assert = Xunit.Assert;
 
 // ReSharper disable SuggestVarOrType_BuiltInTypes
 // ReSharper disable TooManyChainedReferences
@@ -63,10 +58,10 @@ public class ShapeCollectionTests : SCTest
         var shapes = pres.Slides.First().Shapes;
 
         // Assert
-        Assert.Single(shapes.Where(sp => sp.ShapeType == ShapeType.Chart));
-        Assert.Single(shapes.Where(sp => sp is IPicture));
-        Assert.Single(shapes.Where(sp => sp is ITable));
-        Assert.Single(shapes.Where(sp => sp is IGroupShape));
+        shapes.Count(sp => sp.ShapeType == ShapeType.Chart).Should().Be(1);
+        shapes.Count(sp => sp.ShapeType == ShapeType.Picture).Should().Be(1);
+        shapes.Count(sp => sp.ShapeType == ShapeType.Table).Should().Be(1);
+        shapes.Count(sp => sp.ShapeType == ShapeType.Group).Should().Be(1);
     }
 
     [Test]
@@ -103,8 +98,7 @@ public class ShapeCollectionTests : SCTest
         var shapesCollection = presentation.Slides[0].Shapes;
 
         // Act-Assert
-        Assert.Contains(shapesCollection,
-            shape => shape.Id == 10 && shape is ILine && shape.GeometryType == Geometry.Line);
+        shapesCollection.Should().Contain(shape => shape.Id == 10 && shape is ILine && shape.GeometryType == Geometry.Line);
     }
 
     [Test]
@@ -127,7 +121,7 @@ public class ShapeCollectionTests : SCTest
     {
         // Arrange
         var pres = new Presentation();
-        var xml = TestHelperShared.GetString("line-shape.xml");
+        var xml = StringOf("line-shape.xml");
         var shapes = pres.Slides[0].Shapes;
 
         // Act
@@ -351,7 +345,7 @@ public class ShapeCollectionTests : SCTest
     }
 
     [Test]
-    public void AddPicture_adds_svg_picture()
+    public void AddPicture_adds_SVG_picture()
     {
         // Arrange
         var pres = new Presentation();
@@ -366,8 +360,6 @@ public class ShapeCollectionTests : SCTest
         shapes.Should().HaveCount(1);
         var picture = (IPicture)shapes.Last();
         picture.ShapeType.Should().Be(ShapeType.Picture);
-
-        // These values are the intrinsic size of the test image
         picture.Height.Should().Be(100);
         picture.Width.Should().Be(100);
         pres.Validate();

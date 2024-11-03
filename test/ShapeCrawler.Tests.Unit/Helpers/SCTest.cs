@@ -1,6 +1,4 @@
-﻿using System.IO;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using ClosedXML.Excel;
 using NUnit.Framework;
 
@@ -39,6 +37,12 @@ public abstract class SCTest
         stream!.CopyTo(mStream);
 
         return mStream;
+    }
+
+    protected static string StringOf(string fileName)
+    {
+        var stream = StreamOf(fileName);
+        return System.Text.Encoding.UTF8.GetString(stream.ToArray());
     }
     
     protected string GetTestPath(string fileName)
