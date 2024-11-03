@@ -1,5 +1,6 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 using ShapeCrawler.Drawing;
+using ShapeCrawler.Tables;
 using ShapeCrawler.Texts;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -25,6 +26,26 @@ public interface ITableCell
     ///     Gets Shape Fill of the cell.
     /// </summary>
     IShapeFill Fill { get; }
+
+    /// <summary>
+    ///     Gets the Top Border.
+    /// </summary>
+    IBorder TopBorder { get; }
+    
+    /// <summary>
+    ///     Gets the Bottom Border.
+    /// </summary>
+    IBorder BottomBorder { get; }
+    
+    /// <summary>
+    ///     Gets the Left Border.
+    /// </summary>
+    IBorder LeftBorder { get; }
+    
+    /// <summary>
+    ///     Gets the Right Border.
+    /// </summary>
+    IBorder RightBorder { get; }
 }
 
 internal sealed class TableCell : ITableCell
@@ -37,6 +58,10 @@ internal sealed class TableCell : ITableCell
         this.TextFrame = new TextFrame(sdkTypedOpenXmlPart, this.ATableCell.TextBody!);
         var aTcPr = aTableCell.TableCellProperties!;
         this.Fill = new TableCellFill(sdkTypedOpenXmlPart, aTcPr);
+        this.TopBorder = new TopBorder(aTableCell.TableCellProperties!);
+        this.BottomBorder = new BottomBorder(aTableCell.TableCellProperties!);
+        this.LeftBorder = new LeftBorder(aTableCell.TableCellProperties!);
+        this.RightBorder = new RightBorder(aTableCell.TableCellProperties!);
     }
 
     public bool IsMergedCell => this.ATableCell.GridSpan is not null ||
@@ -45,6 +70,14 @@ internal sealed class TableCell : ITableCell
                                 this.ATableCell.VerticalMerge is not null;
 
     public IShapeFill Fill { get; }
+
+    public IBorder TopBorder { get; }
+    
+    public IBorder BottomBorder { get; }
+
+    public IBorder LeftBorder { get; }
+
+    public IBorder RightBorder { get; }
 
     public ITextFrame TextFrame { get; }
 
