@@ -133,47 +133,25 @@ internal sealed class Slide : ISlide
         return returnList;
     }
 
-    /// <summary>
-    ///     Ensure this slide has a notes slide, adding one if needed.
-    /// </summary>
-    public void AddNotesIfEmpty()
+    /// <inheritdoc/>
+    public void AddNotes(IEnumerable<string> lines)
     {
-        if (this.SDKSlidePart.NotesSlidePart is not null)
+        var notes = this.Notes;
+        if (notes is null)
         {
-            return;
+            this.AddNotesSlide(lines);
         }
-
-        // https://learn.microsoft.com/en-us/office/open-xml/presentation/working-with-notes-slides
-        var rid = this.SDKSlidePart.NextRelationshipId();
-        NotesSlidePart notesSlidePart1 = this.SDKSlidePart.AddNewPart<NotesSlidePart>(rid);
-        NotesSlide notesSlide = new NotesSlide
-        (
-            new CommonSlideData
-            (
-                new ShapeTree
-                (
-                    new P.NonVisualGroupShapeProperties
-                    (
-                        new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = string.Empty },
-                        new P.NonVisualGroupShapeDrawingProperties(),
-                        new ApplicationNonVisualDrawingProperties()),
-                    new GroupShapeProperties(new TransformGroup()),
-                    new P.Shape(
-                        new P.NonVisualShapeProperties
-                        (
-                            new P.NonVisualDrawingProperties() { Id = (UInt32Value)2U, Name = "Notes Placeholder 2" },
-                            new P.NonVisualShapeDrawingProperties(new ShapeLocks() { NoGrouping = true }),
-                            new ApplicationNonVisualDrawingProperties(new PlaceholderShape() { Type = PlaceholderValues.Body })),
-                        new P.ShapeProperties(),
-                        new P.TextBody
-                        (
-                            new BodyProperties(),
-                            new ListStyle(),
-                            new A.Paragraph(new EndParagraphRunProperties()))))),
-            new ColorMapOverride(new MasterColorMapping()));
-        notesSlidePart1.NotesSlide = notesSlide;
+        else
+        {
+            var paragraphs = notes.Paragraphs;
+            foreach(var line in lines)
+            {
+                paragraphs.Add();
+                paragraphs[paragraphs.Count - 1].Text = line;
+            }
+        }
     }
-    
+
     internal PresentationDocument SDKPresentationDocument() => (PresentationDocument)this.SDKSlidePart.OpenXmlPackage;
 
     /// <summary>
@@ -217,6 +195,58 @@ internal sealed class Slide : ISlide
         return notesPlaceholder?.TextFrame;
     }
 
+    /// <summary>
+    ///     Add a notes slide, with the specified lines of text.
+    /// </summary>
+    private void AddNotesSlide(IEnumerable<string> lines)
+    {
+        // Build up the children of the text body element
+        var textBodyChildren = new List<OpenXmlElement>() {
+            new BodyProperties(),
+            new ListStyle()
+        };
+
+        // Add in the text lines
+        textBodyChildren.AddRange(
+            lines
+                .Select(line => new A.Paragraph(
+                    new A.ParagraphProperties(),
+                    new A.Run(
+                        new A.RunProperties(),
+                        new A.Text(line)),
+                    new A.EndParagraphRunProperties())));
+
+        // Always add at least one paragraph, even if empty
+        if (!lines.Any())
+        {
+            textBodyChildren.Add(
+                new A.Paragraph(
+                    new A.EndParagraphRunProperties()));
+        }
+
+        // https://learn.microsoft.com/en-us/office/open-xml/presentation/working-with-notes-slides
+        var rid = this.SDKSlidePart.NextRelationshipId();
+        NotesSlidePart notesSlidePart1 = this.SDKSlidePart.AddNewPart<NotesSlidePart>(rid);
+        NotesSlide notesSlide = new NotesSlide(
+            new CommonSlideData(
+                new ShapeTree(
+                    new P.NonVisualGroupShapeProperties(
+                        new P.NonVisualDrawingProperties() { Id = (UInt32Value)1U, Name = string.Empty },
+                        new P.NonVisualGroupShapeDrawingProperties(),
+                        new ApplicationNonVisualDrawingProperties()),
+                    new GroupShapeProperties(new TransformGroup()),
+                    new P.Shape(
+                        new P.NonVisualShapeProperties(
+                            new P.NonVisualDrawingProperties() { Id = (UInt32Value)2U, Name = "Notes Placeholder 2" },
+                            new P.NonVisualShapeDrawingProperties(new ShapeLocks() { NoGrouping = true }),
+                            new ApplicationNonVisualDrawingProperties(new PlaceholderShape() { Type = PlaceholderValues.Body })),
+                        new P.ShapeProperties(),
+                        new P.TextBody(
+                            textBodyChildren)))),           
+            new ColorMapOverride(new MasterColorMapping()));
+        notesSlidePart1.NotesSlide = notesSlide;
+    }
+    
     private int ParseNumber()
     {
         var sdkPresentationDocument = (PresentationDocument)this.SDKSlidePart.OpenXmlPackage;
