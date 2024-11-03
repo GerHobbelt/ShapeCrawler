@@ -61,6 +61,11 @@ internal static class UnitConverter
         return HorizontalEmuToPixel(PointToEmu(point));
     }
 
+    internal static decimal InchToPixel(decimal inch)
+    {
+        return inch * 96;
+    }
+    
     internal static double AngleValueToDegrees(int angle)
     {
         return angle * AngleToDegrees;
