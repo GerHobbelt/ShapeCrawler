@@ -9,9 +9,9 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using ShapeCrawler.Charts;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
-using ShapeCrawler.Services;
 using ShapeCrawler.Shared;
 using ShapeCrawler.Units;
 using SkiaSharp;
@@ -496,7 +496,9 @@ internal sealed class SlideShapes : ISlideShapes
     public T? TryGetByName<T>(string name) where T : IShape => this.shapes.TryGetByName<T>(name);
     
     public IShape GetByName(string name) => this.shapes.GetByName(name);
-    
+
+    public IShape Last<T>() where T : IShape => this.shapes.Last<T>();
+
     public IEnumerator<IShape> GetEnumerator() => this.shapes.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
