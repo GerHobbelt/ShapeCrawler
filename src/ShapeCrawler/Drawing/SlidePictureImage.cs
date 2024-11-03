@@ -18,7 +18,7 @@ internal sealed class SlidePictureImage : IImage
         this.aBlip = aBlip;
         this.sdkImagePart = (ImagePart)this.sdkTypedOpenXmlPart.GetPartById(aBlip.Embed!.Value!);
     }
-    
+
     public string MIME => this.sdkImagePart.ContentType;
 
     public string Name => Path.GetFileName(this.sdkImagePart.Uri.ToString());
@@ -52,22 +52,6 @@ internal sealed class SlidePictureImage : IImage
         byte[] sourceBytes = File.ReadAllBytes(file);
         this.Update(sourceBytes);
     }
-    
-    public byte[] AsByteArray()
-    {
-        var stream = this.sdkImagePart.GetStream();
-        var mStream = new MemoryStream();
-        var buffer = new byte[1024];
 
-        int read;
-
-        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-        {
-            mStream.Write(buffer, 0, read);
-        }
-
-        stream.Close();
-
-        return mStream.ToArray();
-    }
+    public byte[] AsByteArray() => new WrappedImagePart(this.sdkImagePart).AsBytes();
 }

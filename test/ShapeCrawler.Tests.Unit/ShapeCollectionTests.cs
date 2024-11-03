@@ -12,7 +12,6 @@ using ShapeCrawler.Tests.Unit.Helpers;
 namespace ShapeCrawler.Tests.Unit;
 
 [SuppressMessage("ReSharper", "SuggestVarOrType_SimpleTypes")]
-[SuppressMessage("Usage", "xUnit1013:Public method should be marked as test")]
 public class ShapeCollectionTests : SCTest
 {
     [Test]
@@ -439,7 +438,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestHelper.GetStream("test-image-large.png");
+        var image = TestHelper.GetStream("png image-large.png");
         image.Position = 0;
 
         // Act
@@ -509,7 +508,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestHelper.GetStream("test-image-1.png");
+        var image = TestHelper.GetStream("png image-1.png");
 
         // Act
         shapes.AddPicture(image);
@@ -542,7 +541,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestHelper.GetStream("test-image-1.png");
+        var image = TestHelper.GetStream("png image-1.png");
 
         // Act
         shapes.AddPicture(image);
@@ -550,6 +549,22 @@ public class ShapeCollectionTests : SCTest
         // Assert
         var addedPicture = shapes.Last();
         addedPicture.Height.Should().Be(300);
+    }
+
+    [Test]
+    public void AddPicture_adds_picture_with_correct_mime()
+    {
+        // Arrange
+        var pres = new Presentation();
+        var shapes = pres.Slides[0].Shapes;
+        var image = StreamOf("jpeg image.jpg");
+
+        // Act
+        shapes.AddPicture(image);
+
+        // Assert
+        var addedPictureImage = shapes.Last<IPicture>().Image!;
+        addedPictureImage.MIME.Should().Be("image/jpeg");
     }
 
     [Test]
@@ -586,7 +601,7 @@ public class ShapeCollectionTests : SCTest
         rectangle.Y.Should().Be(60);
         rectangle.Width.Should().Be(100);
         rectangle.Height.Should().Be(70);
-        rectangle.TextFrame!.Paragraphs.Count.Should().Be(1);
+        rectangle.TextBox!.Paragraphs.Count.Should().Be(1);
         rectangle.Outline.HexColor.Should().BeNull();
         pres.Validate();
     }

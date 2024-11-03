@@ -1,6 +1,5 @@
 ﻿using FluentAssertions;
 using NUnit.Framework;
-using ShapeCrawler.Exceptions;
 using ShapeCrawler.Tests.Unit.Helpers;
 
 namespace ShapeCrawler.Tests.Unit;
@@ -31,7 +30,7 @@ public class ParagraphPortionTests : SCTest
         var pptxStream = StreamOf("autoshape-case001.pptx");
         var pres = new Presentation(pptxStream);
         var autoShape = pres.SlideMasters[0].Shapes.GetByName<IShape>("AutoShape 1");
-        var portion = autoShape.TextFrame!.Paragraphs[0].Portions[0];
+        var portion = autoShape.TextBox!.Paragraphs[0].Portions[0];
 
         // Act
         portion.Text = "test";
@@ -50,7 +49,7 @@ public class ParagraphPortionTests : SCTest
         var pptxStream = StreamOf(pptxFile);
         var presentation = new Presentation(pptxStream);
         var autoShape = presentation.Slides[0].Shapes.GetByName<IShape>(shapeName);
-        var portion = autoShape.TextFrame.Paragraphs[0].Portions[0];
+        var portion = autoShape.TextBox.Paragraphs[0].Portions[0];
 
         // Act
         portion.Hyperlink = "https://github.com/ShapeCrawler/ShapeCrawler";
@@ -59,7 +58,7 @@ public class ParagraphPortionTests : SCTest
         presentation.Save();
         presentation = new Presentation(pptxStream);
         autoShape = presentation.Slides[0].Shapes.GetByName<IShape>(shapeName);
-        portion = autoShape.TextFrame.Paragraphs[0].Portions[0];
+        portion = autoShape.TextBox.Paragraphs[0].Portions[0];
         portion.Hyperlink.Should().Be("https://github.com/ShapeCrawler/ShapeCrawler");
     }
     
@@ -71,8 +70,8 @@ public class ParagraphPortionTests : SCTest
         var presentation = new Presentation(pptxStream);
         var textBox3 = presentation.Slides[0].Shapes.GetByName<IShape>("TextBox 3");
         var textBox4 = presentation.Slides[0].Shapes.GetByName<IShape>("TextBox 4");
-        var portion3 = textBox3.TextFrame.Paragraphs[0].Portions[0];
-        var portion4 = textBox4.TextFrame.Paragraphs[0].Portions[0];
+        var portion3 = textBox3.TextBox.Paragraphs[0].Portions[0];
+        var portion4 = textBox4.TextBox.Paragraphs[0].Portions[0];
 
         // Act
         portion3.Hyperlink = "https://github.com/ShapeCrawler/ShapeCrawler";
@@ -90,7 +89,7 @@ public class ParagraphPortionTests : SCTest
         var pptx = StreamOf("autoshape-case001.pptx");
         var pres = new Presentation(pptx);
         var shape = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 1");
-        var portion = shape.TextFrame!.Paragraphs[0].Portions[0];
+        var portion = shape.TextBox!.Paragraphs[0].Portions[0];
         
         // Act
         portion.Hyperlink = "some.pptx";
@@ -123,7 +122,7 @@ public class ParagraphPortionTests : SCTest
         var pptx = StreamOf("autoshape-grouping.pptx");
         var pres = new Presentation(pptx);
         var shape = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3");
-        var portion = shape.TextFrame!.Paragraphs[0].Portions[0];
+        var portion = shape.TextBox!.Paragraphs[0].Portions[0];
 
         // Act-Assert
         portion.TextHighlightColor.ToString().Should().Be("FFFF00");
@@ -136,7 +135,7 @@ public class ParagraphPortionTests : SCTest
         var pptx = StreamOf("autoshape-grouping.pptx");
         var pres = new Presentation(pptx);
         var shape = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3");
-        var portion = shape.TextFrame!.Paragraphs[0].Portions[0];
+        var portion = shape.TextBox!.Paragraphs[0].Portions[0];
 
         // Act-Assert
         portion.TextHighlightColor.ToString().Should().Be("FFFF00");
@@ -149,7 +148,7 @@ public class ParagraphPortionTests : SCTest
         var pptx = StreamOf("autoshape-grouping.pptx");
         var pres = new Presentation(pptx);
         var shape = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 4");
-        var portion = shape.TextFrame!.Paragraphs[0].Portions[0];
+        var portion = shape.TextBox!.Paragraphs[0].Portions[0];
 
         // Act
         portion.TextHighlightColor = Color.FromHex("FFFF00");
@@ -165,7 +164,7 @@ public class ParagraphPortionTests : SCTest
         var pptx = StreamOf("autoshape-grouping.pptx");
         var pres = new Presentation(pptx);
         var shape = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 4");
-        var portion = shape.TextFrame!.Paragraphs[0].Portions[0];
+        var portion = shape.TextBox!.Paragraphs[0].Portions[0];
         var color = Color.FromHex("FFFF00");
 
         // Act

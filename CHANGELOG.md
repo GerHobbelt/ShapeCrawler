@@ -1,8 +1,13 @@
 # Changelog  
 
-## Version 0.54.1 - Unreleased
+## Version 0.54.2 - Unreleased
+🐞Fixed `Slides.AddEmptySlide()` [#658](https://github.com/ShapeCrawler/ShapeCrawler/issues/658)  
+🐞Fixed `Image.MIME`
+
+## Version 0.54.1 - 2024-08-28
 🐞Fixed `IFont.LatinName` [#669](https://github.com/ShapeCrawler/ShapeCrawler/issues/669)  
-🐞Fixed copying Slide Notes [#616](https://github.com/ShapeCrawler/ShapeCrawler/issues/616)
+🐞Fixed copying Slide Notes [#616](https://github.com/ShapeCrawler/ShapeCrawler/issues/616)  
+🐞Fixed text Autofit [#643](https://github.com/ShapeCrawler/ShapeCrawler/issues/643)
 
 ## Version 0.54.0 - 2024-08-13
 🍀Added APIs `TopBorder`, `BottomBorder` etc. to table cell to manage borders [#546](https://github.com/ShapeCrawler/ShapeCrawler/issues/546)

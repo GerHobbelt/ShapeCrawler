@@ -1,11 +1,9 @@
-using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
 using NUnit.Framework;
 using ShapeCrawler.Tests.Unit.Helpers;
 
 namespace ShapeCrawler.Tests.Unit;
 
-[SuppressMessage("Usage", "xUnit1013:Public method should be marked as test")]
 public class PresentationTests : SCTest
 {
     [Test]
@@ -88,7 +86,23 @@ public class PresentationTests : SCTest
         numberSlidesCase1.Should().Be(1);
         numberSlidesCase2.Should().Be(1);
     }
+    
+    [Test]
+    [Ignore("https://github.com/ShapeCrawler/ShapeCrawler/issues/749")]
+    public void Slides_Count()
+    {
+        // Arrange
+        var pres = new Presentation(StreamOf("007_2 slides.pptx"));
+        var removingSlide = pres.Slides[0];
+        var slides = pres.Slides;
 
+        // Act
+        slides.Remove(removingSlide);
+        
+        // Assert
+        slides.Count.Should().Be(1);
+    }
+    
     [Test]
     public void Slides_Add_adds_specified_slide_at_the_end_of_slide_collection()
     {
@@ -147,6 +161,22 @@ public class PresentationTests : SCTest
         // Assert
         destPres.Slides.Last().Notes!.Text.Should().Be("Test note");
         destPres.Validate();
+    }
+
+    [Test]
+    public void Slides_AddEmptySlide()
+    {
+        // Arrange
+        var pres = new Presentation();
+        var removingSlide = pres.Slides[0];
+        
+        // Act
+        pres.Slides.Remove(removingSlide);
+        pres.Slides.AddEmptySlide(SlideLayoutType.Blank);
+        
+        // Assert
+        pres.Slides.Count.Should().Be(1);
+        pres.Validate();
     }
 
     [Test]
@@ -283,7 +313,7 @@ public class PresentationTests : SCTest
         // Arrange
         var pptx = StreamOf("autoshape-case003.pptx");
         var pres = new Presentation(pptx);
-        var textBox = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 2").TextFrame!;
+        var textBox = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 2").TextBox!;
         textBox.Text = "Test";
 
         // Act
@@ -291,7 +321,7 @@ public class PresentationTests : SCTest
 
         // Assert
         pres = new Presentation(pptx);
-        textBox = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 2").TextFrame!;
+        textBox = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 2").TextBox!;
         textBox.Text.Should().Be("Test");
     }
 
@@ -301,7 +331,7 @@ public class PresentationTests : SCTest
         // Arrange
         var originalStream = StreamOf("001.pptx");
         var pres = new Presentation(originalStream);
-        var textBox = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextFrame;
+        var textBox = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextBox;
         var originalText = textBox!.Text;
         var newStream = new MemoryStream();
 
@@ -310,7 +340,7 @@ public class PresentationTests : SCTest
         pres.SaveAs(newStream);
 
         pres = new Presentation(originalStream);
-        textBox = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextFrame;
+        textBox = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextBox;
         var autoShapeText = textBox!.Text;
 
         // Assert
@@ -376,7 +406,7 @@ public class PresentationTests : SCTest
         // Arrange
         var originalPath = GetTestPath("001.pptx");
         var pres = new Presentation(originalPath);
-        var textFrame = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextFrame;
+        var textFrame = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextBox;
         var originalText = textFrame!.Text;
         var newPath = Path.GetTempFileName();
         textFrame.Text = originalText + "modified";
@@ -386,7 +416,7 @@ public class PresentationTests : SCTest
 
         // Assert
         pres = new Presentation(originalPath);
-        textFrame = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextFrame;
+        textFrame = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextBox;
         var autoShapeText = textFrame!.Text;
         autoShapeText.Should().BeEquivalentTo(originalText);
 

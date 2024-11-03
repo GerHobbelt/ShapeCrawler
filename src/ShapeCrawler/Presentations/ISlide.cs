@@ -44,12 +44,12 @@ public interface ISlide
     /// <summary>
     ///     Gets slide notes as a single text frame.
     /// </summary>
-    ITextFrame? Notes { get; }
+    ITextBox? Notes { get; }
 
     /// <summary>
     ///     List of all text frames on that slide.
     /// </summary>
-    public IList<ITextFrame> TextFrames();
+    public IList<ITextBox> TextFrames();
 
     /// <summary>
     ///     Hides slide.
@@ -64,7 +64,7 @@ public interface ISlide
     /// <summary>
     ///     Gets table by name.
     /// </summary>
-    ITable Table(string table);
+    ITable Table(string name);
     
     /// <summary>
     ///     Adds specified lines to the slide notes.
