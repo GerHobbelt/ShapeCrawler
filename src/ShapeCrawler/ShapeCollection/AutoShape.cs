@@ -17,11 +17,11 @@ internal sealed class AutoShape : CopyableShape
     internal AutoShape(
         OpenXmlPart sdkTypedOpenXmlPart,
         P.Shape pShape,
-        TextFrame textFrame)
+        TextBox textBox)
         : this(sdkTypedOpenXmlPart, pShape)
     {
         this.IsTextHolder = true;
-        this.TextBox = textFrame;
+        this.TextBox = textBox;
     }
 
     internal AutoShape(
@@ -30,8 +30,8 @@ internal sealed class AutoShape : CopyableShape
         : base(sdkTypedOpenXmlPart, pShape)
     {
         this.pShape = pShape;
-        this.Outline = new SlideShapeOutline(this.sdkTypedOpenXmlPart, pShape.Descendants<P.ShapeProperties>().First());
-        this.Fill = new ShapeFill(this.sdkTypedOpenXmlPart, pShape.Descendants<P.ShapeProperties>().First());
+        this.Outline = new SlideShapeOutline(this.SdkTypedOpenXmlPart, pShape.Descendants<P.ShapeProperties>().First());
+        this.Fill = new ShapeFill(this.SdkTypedOpenXmlPart, pShape.Descendants<P.ShapeProperties>().First());
     }
 
     public override bool HasOutline => true;
@@ -50,7 +50,7 @@ internal sealed class AutoShape : CopyableShape
     {
         get
         {
-            var spPr = this.pShapeTreeElement.Descendants<P.ShapeProperties>().First();
+            var spPr = this.PShapeTreeElement.Descendants<P.ShapeProperties>().First();
             var aPresetGeometry = spPr.GetFirstChild<A.PresetGeometry>();
 
             if (aPresetGeometry == null)
@@ -103,7 +103,7 @@ internal sealed class AutoShape : CopyableShape
             float bottom = (float)(this.Y + this.Height);
             var rect = new SKRect(left, top, right, bottom);
             slideCanvas.DrawRect(rect, paint);
-            var textFrame = (TextFrame)this.TextBox!;
+            var textFrame = (TextBox)this.TextBox!;
             textFrame.Draw(slideCanvas, left, top);
         }
     }

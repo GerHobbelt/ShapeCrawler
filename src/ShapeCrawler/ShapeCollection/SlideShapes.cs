@@ -57,7 +57,7 @@ internal sealed class SlideShapes : ISlideShapes
         }
     }
 
-    public void AddAudio(int x, int y, Stream audio) => this.AddAudio(x, y, audio, AudioType.MP3);
+    public void AddAudio(int x, int y, Stream audio) => this.AddAudio(x, y, audio, AudioType.Mp3);
 
     public void AddAudio(int x, int y, Stream audio, AudioType type)
     {
@@ -65,11 +65,11 @@ internal sealed class SlideShapes : ISlideShapes
         string? extension;
         switch (type)
         {
-            case AudioType.MP3:
+            case AudioType.Mp3:
                 contentType = "audio/mpeg";
                 extension = ".mp3";
                 break;
-            case AudioType.WAVE:
+            case AudioType.Wave:
                 contentType = "audio/wav";
                 extension = ".wav";
                 break;
@@ -120,13 +120,13 @@ internal sealed class SlideShapes : ISlideShapes
         applicationNonVisualDrawingProps.Append(appNonVisualDrawingPropsExtensionList);
     }
 
-    public void AddPicture(Stream imageStream)
+    public void AddPicture(Stream image)
     {
-        imageStream.Position = 0;
+        image.Position = 0;
         var imageCopy = new MemoryStream();
-        imageStream.CopyTo(imageCopy);
+        image.CopyTo(imageCopy);
         imageCopy.Position = 0;
-        imageStream.Position = 0;
+        image.Position = 0;
         using var skBitmap = SKBitmap.Decode(imageCopy);
 
         if (skBitmap != null)
@@ -151,7 +151,7 @@ internal sealed class SlideShapes : ISlideShapes
             var cxEmu = UnitConverter.HorizontalPixelToEmu(width);
             var cyEmu = UnitConverter.VerticalPixelToEmu(height);
 
-            var pPicture = this.CreatePPicture(imageStream, "Picture");
+            var pPicture = this.CreatePPicture(image, "Picture");
 
             var transform2D = pPicture.ShapeProperties!.Transform2D!;
             transform2D.Offset!.X = xEmu;
@@ -161,31 +161,21 @@ internal sealed class SlideShapes : ISlideShapes
         }
         else
         {
-            // Not a bitmap, let's try it as an SVG
-            SvgDocument? doc;
+            SvgDocument doc;
             try
             {
-                doc = SvgDocument.Open<SvgDocument>(imageStream);
+                doc = SvgDocument.Open<SvgDocument>(image);
             }
-            catch
+            catch (SvgGdiPlusCannotBeLoadedException ex) 
             {
-                // Neither Bitmap nor SVG can load this, so that's an error
-                throw new SCException("Unable to decode the image from the supplied stream.");
+                throw new SCException("An error occurred while attempting to use GDI+ functionality. If you use Linux, you need to install a library that provides GDI+ support. You can do this with the following command: sudo apt install -y libgdiplus", ex);
             }
 
-            imageStream.Position = 0;
-            this.AddPictureSvg(doc, imageStream);
+            image.Position = 0;
+            this.AddPictureSvg(doc, image);
         }
     }
-
-    public void AddBarChart(BarChartType barChartType)
-    {
-        var chartFactory = default(ChartGraphicFrameHandler);
-        var newPGraphicFrame = chartFactory.Create(this.sdkSlidePart);
-
-        this.sdkSlidePart.Slide.CommonSlideData!.ShapeTree!.Append(newPGraphicFrame);
-    }
-
+    
     public void AddVideo(int x, int y, Stream stream)
     {
         var sdkPresDocument = (PresentationDocument)this.sdkSlidePart.OpenXmlPackage;
@@ -404,11 +394,8 @@ internal sealed class SlideShapes : ISlideShapes
         aXfrm.VerticalFlip = new BooleanValue(flipV);
     }
 
-    public void AddTable(int x, int y, int columnsCount, int rowsCount)
-    {
-        // default style (to keep it how it was)
+    public void AddTable(int x, int y, int columnsCount, int rowsCount) =>
         this.AddTable(x, y, columnsCount, rowsCount, TableStyle.MediumStyle2Accent1);
-    }
 
     public void AddTable(int x, int y, int columnsCount, int rowsCount, ITableStyle style)
     {
@@ -438,7 +425,7 @@ internal sealed class SlideShapes : ISlideShapes
 
         var tableProperties = new A.TableProperties { FirstRow = true, BandRow = true };
         var tableStyleId = new A.TableStyleId
-        { Text = style.GUID };
+        { Text = style.Guid };
         tableProperties.Append(tableStyleId);
 
         var tableGrid = new A.TableGrid();
@@ -467,12 +454,7 @@ internal sealed class SlideShapes : ISlideShapes
 
     public void Remove(IShape shape)
     {
-        var removingShape = this.shapes.FirstOrDefault(sp => sp.Id == shape.Id);
-        if (removingShape == null)
-        {
-            throw new SCException("Shape is not found.");
-        }
-
+        var removingShape = this.shapes.FirstOrDefault(sp => sp.Id == shape.Id) ?? throw new SCException("Shape is not found.");
         removingShape.Remove();
     }
 
@@ -713,8 +695,7 @@ internal sealed class SlideShapes : ISlideShapes
             new A.NonVisualDrawingPropertiesExtensionList();
 
         A.NonVisualDrawingPropertiesExtension aNonVisualDrawingPropertiesExtension =
-            new A.NonVisualDrawingPropertiesExtension();
-        aNonVisualDrawingPropertiesExtension.Uri = "{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}";
+            new A.NonVisualDrawingPropertiesExtension { Uri = "{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}" };
 
         A16.CreationId a16CreationId = new A16.CreationId();
 
@@ -739,8 +720,7 @@ internal sealed class SlideShapes : ISlideShapes
 
         A.BlipExtensionList aBlipExtensionList = new A.BlipExtensionList();
 
-        A.BlipExtension aBlipExtension = new A.BlipExtension();
-        aBlipExtension.Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}";
+        A.BlipExtension aBlipExtension = new A.BlipExtension { Uri = "{28A0092B-C50C-407E-A947-70E740481C1C}" };
 
         A14.UseLocalDpi a14UseLocalDpi = new A14.UseLocalDpi();
 
@@ -755,17 +735,16 @@ internal sealed class SlideShapes : ISlideShapes
 
         aBlipExtensionList.AppendChild(aBlipExtension);
 
-        aBlipExtension = new A.BlipExtension();
-        aBlipExtension.Uri = "{96DAC541-7B7A-43D3-8B79-37D633B846F1}";
+        aBlipExtension = new A.BlipExtension { Uri = "{96DAC541-7B7A-43D3-8B79-37D633B846F1}" };
 
-        var sVGBlip = new DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip() { Embed = svgPartRId };
+        var svgBlip = new DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip() { Embed = svgPartRId };
 
         // "http://schemas.microsoft.com/office/drawing/2016/SVG/main"
         var asvg = DocumentFormat.OpenXml.Linq.ASVG.asvg;
 
-        sVGBlip.AddNamespaceDeclaration(nameof(asvg), asvg.NamespaceName);
+        svgBlip.AddNamespaceDeclaration(nameof(asvg), asvg.NamespaceName);
 
-        aBlipExtension.AppendChild(sVGBlip);
+        aBlipExtension.AppendChild(svgBlip);
 
         aBlipExtensionList.AppendChild(aBlipExtension);
 

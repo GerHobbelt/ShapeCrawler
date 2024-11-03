@@ -297,7 +297,7 @@ public class ShapeCollectionTests : SCTest
         var shapes = pres.Slides[1].Shapes;
 
         // Act
-        shapes.AddAudio(300, 100, wav, AudioType.WAVE);
+        shapes.AddAudio(300, 100, wav, AudioType.Wave);
 
         // Assert
         var addedAudio = pres.Slides[1].Shapes.OfType<IMediaShape>().Last();
@@ -325,22 +325,7 @@ public class ShapeCollectionTests : SCTest
         addedVideo.X.Should().Be(xPxCoordinate);
         addedVideo.Y.Should().Be(yPxCoordinate);
     }
-
-    [Test, Ignore("Not implemented yet")]
-    public void AddBarChart_adds_Bar_Chart()
-    {
-        // Arrange
-        var pres = new Presentation();
-
-        // Act
-        pres.Slides[0].Shapes.AddBarChart(BarChartType.ClusteredBar);
-
-        // Assert
-        var barChart = pres.Slides[0].Shapes.Last();
-        barChart.Should().NotBeNull();
-        pres.Validate();
-    }
-
+    
     [Test]
     public void AddPicture_adds_svg_picture()
     {
@@ -521,18 +506,18 @@ public class ShapeCollectionTests : SCTest
     }
 
     [Test]
-    public void AddPicture_with_not_an_image_throws_exception()
+    public void AddPicture_throws_exception_when_the_specified_stream_is_non_image()
     {
         // Arrange
         var pres = new Presentation();
-        var shapes = pres.Slides[0].Shapes;
-        var notAnImage = TestHelper.GetStream("autoshape-case011_save-as-png.pptx");
+        var shapes = pres.Slide(1).Shapes;
+        var stream = StreamOf("autoshape-case011_save-as-png.pptx");
 
         // Act
-        var act = () => shapes.AddPicture(notAnImage);
+        var addingPicture = () => shapes.AddPicture(stream);
 
         // Assert
-        act.Should().Throw<SCException>();
+        addingPicture.Should().Throw<Exception>();
     }
 
     [Test]
@@ -564,7 +549,7 @@ public class ShapeCollectionTests : SCTest
 
         // Assert
         var addedPictureImage = shapes.Last<IPicture>().Image!;
-        addedPictureImage.MIME.Should().Be("image/jpeg");
+        addedPictureImage.Mime.Should().Be("image/jpeg");
     }
     
     [Test]

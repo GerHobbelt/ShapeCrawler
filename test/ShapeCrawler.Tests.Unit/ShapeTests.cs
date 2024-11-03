@@ -31,7 +31,7 @@ public class ShapeTests : SCTest
         var audioShape = pres.Slides[0].Shapes.GetByName<IMediaShape>("Audio 1");
 
         // Act
-        var mime = audioShape.MIME;
+        var mime = audioShape.Mime;
 
         // Assert
         mime.Should().Be("audio/mpeg");
@@ -61,7 +61,7 @@ public class ShapeTests : SCTest
         var videoShape = pres.Slides[0].Shapes.GetByName<IMediaShape>("Video 1");
 
         // Act
-        var mime = videoShape.MIME;
+        var mime = videoShape.Mime;
 
         // Assert
         mime.Should().Be("video/mp4");
@@ -563,7 +563,7 @@ public class ShapeTests : SCTest
     public void SDKXPath_returns_shape_xpath(IShape shape, string expectedXPath)
     {
         // Act
-        var shapeXPath = shape.SDKXPath;
+        var shapeXPath = shape.SdkXPath;
 
         // Assert
         shapeXPath.Should().Be(expectedXPath);

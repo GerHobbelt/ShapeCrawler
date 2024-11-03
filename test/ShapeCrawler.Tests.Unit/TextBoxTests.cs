@@ -4,7 +4,7 @@ using ShapeCrawler.Tests.Unit.Helpers;
 
 namespace ShapeCrawler.Tests.Unit
 {
-    public class TextFrameTests : SCTest
+    public class TextBoxTests : SCTest
     {
         [Test]
         public void Text_Getter_returns_text_of_table_Cell()
@@ -20,11 +20,11 @@ namespace ShapeCrawler.Tests.Unit
                 .TextBox;
             var textFrame2 = ((ITable)new Presentation(StreamOf("001.pptx")).Slides[1].Shapes.First(sp => sp.Id == 3))
                 .Rows[0].Cells[0]
-                .TextFrame;
+                .TextBox;
             var textFrame3 =
                 ((ITable)new Presentation(StreamOf("009_table.pptx")).Slides[2].Shapes.First(sp => sp.Id == 3)).Rows[0]
                 .Cells[0]
-                .TextFrame;
+                .TextBox;
 
             // Act
             var text1 = textFrame1.Text;
@@ -77,7 +77,6 @@ namespace ShapeCrawler.Tests.Unit
             textFrame.Text.Should().Contain("confirm that");
         }
 
-#if !NET472 && !NET48 // SkiaSharp throws error "Attempted to read or write protected memory. This is often an indication that other memory is corrupt."
         [Test]
         public void Text_Setter_updates_text_box_content_and_Reduces_font_size_When_text_is_Overflow()
         {
@@ -93,22 +92,21 @@ namespace ShapeCrawler.Tests.Unit
             textFrame.Text.Should().BeEquivalentTo(newText);
             textFrame.Paragraphs[0].Portions[0].Font.Size.Should().Be(8);
         }
-#endif
 
         [Test]
         public void Text_Setter_resizes_shape_to_fit_text()
         {
             // Arrange
             var pres = new Presentation(StreamOf("autoshape-case003.pptx"));
-            var shape = pres.Slides[0].Shape("AutoShape 4");
-            var textFrame = shape.TextBox;
+            var shape = pres.Slide(1).Shape("AutoShape 4");
+            var textBox = shape.TextBox;
 
             // Act
-            textFrame.Text = "AutoShape 4 some text";
+            textBox.Text = "AutoShape 4 some text";
 
             // Assert
-            shape.Height.Should().BeApproximately(58.81m, 0.01m);
-            shape.Y.Should().Be(146m);
+            shape.Height.Should().BeApproximately(51.48m, 0.01m);
+            shape.Y.Should().Be(149m);
             pres.Validate();
         }
 
@@ -149,16 +147,15 @@ namespace ShapeCrawler.Tests.Unit
         public void AutofitType_Setter_updates_height()
         {
             // Arrange
-            var pptxStream = StreamOf("autoshape-case003.pptx");
-            var pres = new Presentation(pptxStream);
-            var shape = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 7");
-            var textFrame = shape.TextBox!;
+            var pres = new Presentation(StreamOf("autoshape-case003.pptx"));
+            var shape = pres.Slide(1).Shape("AutoShape 7");
+            var textBox = shape.TextBox!;
 
             // Act
-            textFrame.AutofitType = AutofitType.Resize;
+            textBox.AutofitType = AutofitType.Resize;
 
             // Assert
-            shape.Height.Should().BeApproximately(44.14m, 0.01m);
+            shape.Height.Should().BeApproximately(40.48m, 0.01m);
             pres.Validate();
         }
 
@@ -292,7 +289,7 @@ namespace ShapeCrawler.Tests.Unit
             shape.TextBox.Text = "Some sentence. Some sentence";
 
             // Assert
-            shape.Height.Should().BeApproximately(114.81m, 0.01m);
+            shape.Height.Should().BeApproximately(93.48m, 0.01m);
         }
 
         [Test]
@@ -318,16 +315,13 @@ namespace ShapeCrawler.Tests.Unit
 
         [Test]
 		[SlideShape("014.pptx", 2, 5, TextVerticalAlignment.Middle)] 
-		public void Text_Getter_returns_vertical_alignment(IShape shape, TextVerticalAlignment expectedVAlignment)
+		public void VerticalAlignment_Getter_returns_vertical_alignment(IShape shape, TextVerticalAlignment expectedVAlignment)
         {
             // Arrange
-            var textFrame = ((IShape)shape).TextBox;
+            var textBox = shape.TextBox;
 
-            // Act
-            var valignment = textFrame.VerticalAlignment;
-
-            // Assert
-            valignment.Should().Be(expectedVAlignment);
+            // Act-Assert
+            textBox.VerticalAlignment.Should().Be(expectedVAlignment);
         }
 
         [Test]
@@ -430,7 +424,7 @@ namespace ShapeCrawler.Tests.Unit
         {
             // Arrange
             var pres = new Presentation(StreamOf("009_table.pptx"));
-            var textFrame = pres.Slides[2].Shapes.GetById<ITable>(3).Rows[0].Cells[0].TextFrame;
+            var textFrame = pres.Slides[2].Shapes.GetById<ITable>(3).Rows[0].Cells[0].TextBox;
 
             // Act
             var paragraphsCount = textFrame.Paragraphs.Count;
@@ -522,7 +516,7 @@ namespace ShapeCrawler.Tests.Unit
 
 		[Test]
 		[TestCase("001.pptx", 1, "TextBox 4")]
-		public void Alignment_Setter_updates_text_vertical_alignment(string presName, int slideNumber, string shapeName)
+		public void VerticalAlignment_Setter_updates_text_vertical_alignment(string presName, int slideNumber, string shapeName)
 		{
 			// Arrange
 			var pres = new Presentation(StreamOf(presName));
@@ -551,7 +545,7 @@ namespace ShapeCrawler.Tests.Unit
             var textFrame = pres.Slides[slideNumber - 1].TextFrames().First();
 
             // Act
-            var sdkXPath = textFrame.SDKXPath;
+            var sdkXPath = textFrame.SdkXPath;
 
             // Assert
             sdkXPath.Should().Be(expectedXPath);

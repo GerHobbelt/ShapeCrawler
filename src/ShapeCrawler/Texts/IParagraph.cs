@@ -124,7 +124,7 @@ internal sealed class Paragraph : IParagraph
 
             // Resize
             var sdkTextBody = this.aParagraph.Parent!;
-            var textFrame = new TextFrame(this.sdkTypedOpenXmlPart, sdkTextBody);
+            var textFrame = new TextBox(this.sdkTypedOpenXmlPart, sdkTextBody);
             textFrame.ResizeParentShape();
         }
     }
@@ -181,15 +181,7 @@ internal sealed class Paragraph : IParagraph
     }
 
     public ISpacing Spacing => this.GetSpacing();
-
-    public void SetFontSize(int fontSize)
-    {
-        foreach (var portion in this.Portions)
-        {
-            portion.Font.Size = fontSize;
-        }
-    }
-
+    
     public void ReplaceText(string oldValue, string newValue)
     {
         foreach (var portion in this.Portions)
@@ -205,9 +197,17 @@ internal sealed class Paragraph : IParagraph
 
     public void Remove() => this.aParagraph.Remove();
     
+    internal void SetFontSize(int fontSize)
+    {
+        foreach (var portion in this.Portions)
+        {
+            portion.Font!.Size = fontSize;
+        }
+    }
+    
     private ISpacing GetSpacing() => new Spacing(this, this.aParagraph);
 
-    private Bullet GetBullet() => new Bullet(this.aParagraph.ParagraphProperties!);
+    private Bullet GetBullet() => new(this.aParagraph.ParagraphProperties!);
 
     private string ParseText()
     {

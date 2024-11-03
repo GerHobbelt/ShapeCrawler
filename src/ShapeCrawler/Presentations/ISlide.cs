@@ -4,7 +4,9 @@ using DocumentFormat.OpenXml.Packaging;
 using System.Threading.Tasks;
 #endif
 
+#pragma warning disable IDE0130
 namespace ShapeCrawler;
+#pragma warning restore IDE0130
 
 /// <summary>
 ///     Represents a slide.
@@ -14,7 +16,7 @@ public interface ISlide
     /// <summary>
     ///     Gets background image.
     /// </summary>
-    IImage Background { get; }
+    IImage? Background { get; }
 
     /// <summary>
     ///     Gets or sets custom data. It returns <see langword="null"/> if custom data is not presented.
@@ -34,7 +36,7 @@ public interface ISlide
     /// <summary>
     ///     Gets underlying instance of <see cref="DocumentFormat.OpenXml.Packaging.SlidePart"/>.
     /// </summary>
-    SlidePart SDKSlidePart { get; }
+    SlidePart SdkSlidePart { get; }
     
     /// <summary>
     ///     Gets the shape collection.
@@ -75,7 +77,7 @@ public interface ISlide
     ///     Returns shape with specified name.
     /// </summary>
     /// <param name="name">Shape name.</param>
-    /// <returns> The IShape requested. </returns>
+    /// <returns> An instance of <see cref="IShape"/>.</returns>
     IShape Shape(string name);
     
 #if DEBUG

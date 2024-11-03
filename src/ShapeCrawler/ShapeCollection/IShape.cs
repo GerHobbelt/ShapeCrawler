@@ -38,7 +38,6 @@ public interface IShape : IPosition
     /// <summary>
     ///     Gets a value indicating whether shape is a placeholder.
     /// </summary>
-    /// <returns> bool. </returns>
     bool IsPlaceholder { get; }
     
     /// <summary>
@@ -104,12 +103,12 @@ public interface IShape : IPosition
     /// <summary>
     ///     Gets XPath of the underlying Open XML element.
     /// </summary>
-    public string SDKXPath { get; }
+    public string SdkXPath { get; }
     
     /// <summary>
     ///     Gets a copy of the underlying Open XML element.
     /// </summary>
-    OpenXmlElement SDKOpenXmlElement { get; }
+    OpenXmlElement SdkOpenXmlElement { get; }
 
     /// <summary>
     ///     Gets or sets the text content of the shape.
