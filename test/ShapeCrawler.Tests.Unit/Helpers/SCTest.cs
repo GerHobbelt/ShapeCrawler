@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Packaging;
 using NUnit.Framework;
 
 namespace ShapeCrawler.Tests.Unit.Helpers;
@@ -24,12 +25,7 @@ public abstract class SCTest
         return (T)cellValue;
     }
 
-    protected static byte[] GetTestBytes(string fileName)
-    {
-        return StreamOf(fileName).ToArray();
-    }
-
-    public static MemoryStream StreamOf(string file)
+    public static MemoryStream TestAsset(string file)
     {
         var assembly = Assembly.GetExecutingAssembly();
         var stream = assembly.GetResourceStream(file);
@@ -41,13 +37,13 @@ public abstract class SCTest
 
     protected static string StringOf(string fileName)
     {
-        var stream = StreamOf(fileName);
+        var stream = TestAsset(fileName);
         return System.Text.Encoding.UTF8.GetString(stream.ToArray());
     }
     
     protected string GetTestPath(string fileName)
     {
-        var stream = StreamOf(fileName);
+        var stream = TestAsset(fileName);
         var path = Path.GetTempFileName();
         File.WriteAllBytes(path, stream.ToArray());
 
@@ -60,6 +56,15 @@ public abstract class SCTest
         presentation.SaveAs(stream);
 
         return new Presentation(stream);
+    }
+
+    protected static PresentationDocument SaveAndOpenPresentationAsSdk(IPresentation presentation)
+    {
+        var stream = new MemoryStream();
+        presentation.SaveAs(stream);
+        stream.Position = 0;
+
+        return PresentationDocument.Open(stream, true);
     }
 
 #if DEBUG
@@ -78,7 +83,7 @@ public abstract class SCTest
 
     private static IPresentation GetPresentationFromAssembly(string fileName)
     {
-        var stream = StreamOf(fileName);
+        var stream = TestAsset(fileName);
 
         return new Presentation(stream);
     }

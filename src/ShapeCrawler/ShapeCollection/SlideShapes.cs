@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using ImageMagick;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
+using ShapeCrawler.Presentations;
 using ShapeCrawler.Shared;
-using ShapeCrawler.Tables;
-using ShapeCrawler.Units;
 using SkiaSharp;
-using Svg;
 using A = DocumentFormat.OpenXml.Drawing;
 using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
 using A16 = DocumentFormat.OpenXml.Office2016.Drawing;
@@ -27,13 +24,19 @@ namespace ShapeCrawler.ShapeCollection;
 internal sealed class SlideShapes : ISlideShapes
 {
     private const long DefaultTableWidthEmu = 8128000L;
+    
+    private static readonly MagickFormat[] SupportedImageFormats = [MagickFormat.Bmp, MagickFormat.Emf, MagickFormat.Eps, MagickFormat.Gif, MagickFormat.Jpe, MagickFormat.Jpeg, MagickFormat.Png, MagickFormat.Svg, MagickFormat.Tif, MagickFormat.Tiff];
+    private static readonly MagickFormat[] VectorImageFormats = [MagickFormat.Svg];
+
     private readonly SlidePart sdkSlidePart;
     private readonly IShapes shapes;
-
-    internal SlideShapes(SlidePart sdkSlidePart, IShapes shapes)
+    private readonly MediaCollection mediaCollection;
+    
+    internal SlideShapes(SlidePart sdkSlidePart, IShapes shapes, MediaCollection mediaCollection)
     {
         this.sdkSlidePart = sdkSlidePart;
         this.shapes = shapes;
+        this.mediaCollection = mediaCollection;
     }
 
     public int Count => this.shapes.Count;
@@ -122,59 +125,68 @@ internal sealed class SlideShapes : ISlideShapes
     public void AddPicture(Stream image)
     {
         image.Position = 0;
-        var imageCopy = new MemoryStream();
-        image.CopyTo(imageCopy);
-        imageCopy.Position = 0;
-        image.Position = 0;
-        using var skBitmap = SKBitmap.Decode(imageCopy);
-
-        if (skBitmap != null)
+        try
         {
-            var height = skBitmap.Height;
-            var width = skBitmap.Width;
+            using var imageMagick = new MagickImage(
+                image,
+                new MagickReadSettings { BackgroundColor = MagickColors.Transparent });
+
+            if (imageMagick.Format == MagickFormat.Unknown)
+            {
+                throw new SCException("Unsupported image format.");
+            }
+
+            var originalFormat = imageMagick.Format;
+            if (!SupportedImageFormats.Contains(imageMagick.Format) || VectorImageFormats.Contains(imageMagick.Format))
+            {
+                imageMagick.Format = MagickFormat.Png;
+            }
+
+            uint width = imageMagick.Width;
+            uint height = imageMagick.Height;
 
             if (height > 500)
             {
                 height = 500;
-                width = (int)(height * skBitmap.Width / (decimal)skBitmap.Height);
+                width = (uint)(height * imageMagick.Width / (decimal)imageMagick.Height);
             }
 
             if (width > 500)
             {
                 width = 500;
-                height = (int)(width * skBitmap.Height / (decimal)skBitmap.Width);
+                height = (uint)(width * imageMagick.Height / (decimal)imageMagick.Width);
             }
 
-            var xEmu = UnitConverter.HorizontalPixelToEmu(100);
-            var yEmu = UnitConverter.VerticalPixelToEmu(100);
+            if (width == 500 || height == 500)
+            {
+                imageMagick.Resize(width, height);
+            }
+
+            P.Picture pPicture;
+            using var rasterStream = new MemoryStream();
+            imageMagick.Write(rasterStream);
+            image.Position = 0;
+            pPicture = VectorImageFormats.Contains(originalFormat) 
+                ? this.CreatePPictureSvg(rasterStream, image, "Picture") 
+                : this.CreatePPicture(image, "Picture");
+
+            // Fix up the sizes
+            var xEmu = UnitConverter.HorizontalPixelToEmu(100m);
+            var yEmu = UnitConverter.VerticalPixelToEmu(100m);
             var cxEmu = UnitConverter.HorizontalPixelToEmu(width);
             var cyEmu = UnitConverter.VerticalPixelToEmu(height);
-
-            var pPicture = this.CreatePPicture(image, "Picture");
-
             var transform2D = pPicture.ShapeProperties!.Transform2D!;
             transform2D.Offset!.X = xEmu;
             transform2D.Offset!.Y = yEmu;
             transform2D.Extents!.Cx = cxEmu;
             transform2D.Extents!.Cy = cyEmu;
         }
-        else
+        catch (MagickException)
         {
-            SvgDocument doc;
-            try
-            {
-                doc = SvgDocument.Open<SvgDocument>(image);
-            }
-            catch (SvgGdiPlusCannotBeLoadedException ex) 
-            {
-                throw new SCException("An error occurred while attempting to use GDI+ functionality. If you use Linux, you need to install a library that provides GDI+ support. You can do this with the following command: sudo apt install -y libgdiplus", ex);
-            }
-
-            image.Position = 0;
-            this.AddPictureSvg(doc, image);
+            throw new SCException("Unsupported image format.");
         }
     }
-    
+
     public void AddVideo(int x, int y, Stream stream)
     {
         var sdkPresDocument = (PresentationDocument)this.sdkSlidePart.OpenXmlPackage;
@@ -415,7 +427,7 @@ internal sealed class SlideShapes : ISlideShapes
 
         var tableProperties = new A.TableProperties { FirstRow = true, BandRow = true };
         var tableStyleId = new A.TableStyleId
-        { Text = style.Guid };
+        { Text = ((TableStyle)style).Guid };
         tableProperties.Append(tableStyleId);
 
         var tableGrid = new A.TableGrid();
@@ -468,59 +480,7 @@ internal sealed class SlideShapes : ISlideShapes
     public IEnumerator<IShape> GetEnumerator() => this.shapes.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
-
-    private static string Mime(Stream imageStream)
-    {
-        imageStream.Seek(0, SeekOrigin.Begin);
-        using var codec = SKCodec.Create(imageStream);
-        var mime = codec.EncodedFormat switch
-        {
-            SKEncodedImageFormat.Jpeg => "image/jpeg",
-            SKEncodedImageFormat.Png => "image/png",
-            SKEncodedImageFormat.Gif => "image/gif",
-            SKEncodedImageFormat.Bmp => "image/bmp",
-            _ => "image/png"
-        };
-
-        return mime;
-    }
-
-    private static SizeF GetSvgPixelSize(SvgDocument image)
-    {
-        // Default base size come from viewbox if specified, else use the raw
-        // image bounds
-        var bounds =
-            (image.ViewBox.Width > 0 && image.ViewBox.Height > 0)
-                ? new SizeF(width: image.ViewBox.Width, height: image.ViewBox.Height)
-                : new SizeF(width: image.Bounds.Width, height: image.Bounds.Height);
-
-        return new SizeF()
-        {
-            Width = image.Width.Type switch
-            {
-                SvgUnitType.Percentage => bounds.Width * image.Width.Value / 100.0f,
-                SvgUnitType.User or
-                    SvgUnitType.Pixel => image.Width.Value,
-                SvgUnitType.Inch => UnitConverter.InchToPixelF(image.Width.Value),
-                SvgUnitType.Centimeter => UnitConverter.CentimeterToPixelF(image.Width.Value),
-                SvgUnitType.Millimeter => UnitConverter.CentimeterToPixelF(image.Width.Value / 10.0f),
-                SvgUnitType.Point => new Points(image.Width.Value).AsPixels(),
-                _ => throw new NotImplementedException()
-            },
-            Height = image.Height.Type switch
-            {
-                SvgUnitType.Percentage => bounds.Height * image.Height.Value / 100.0f,
-                SvgUnitType.User or
-                    SvgUnitType.Pixel => image.Height.Value,
-                SvgUnitType.Inch => UnitConverter.InchToPixelF(image.Height.Value),
-                SvgUnitType.Centimeter => UnitConverter.CentimeterToPixelF(image.Height.Value),
-                SvgUnitType.Millimeter => UnitConverter.CentimeterToPixelF(image.Height.Value / 10.0f),
-                SvgUnitType.Point => new Points(image.Height.Value).AsPixels(),
-                _ => throw new NotImplementedException()
-            }
-        };
-    }
-
+    
     private (int, string) GenerateIdAndName()
     {
         var maxId = 0;
@@ -564,15 +524,46 @@ internal sealed class SlideShapes : ISlideShapes
         return $"Table {maxOrder + 1}";
     }
 
+    private bool TryGetImageRId(string hash, out string imgPartRId)
+    {
+        if (this.mediaCollection.TryGetImagePart(hash, out var imagePart))
+        {
+            // Image already exists in the presentation sofar.
+            // Do we have a reference to it on this slide?
+            var found = this.sdkSlidePart.ImageParts.Where(x => x.Uri == imagePart.Uri);
+            if (found.Any())
+            {
+                // Yes, we already have a relationship with this part on this slide
+                // So use that relationship ID
+                imgPartRId = this.sdkSlidePart.GetIdOfPart(imagePart);
+            }
+            else
+            {
+                // No, so let's create a relationship to it
+                imgPartRId = this.sdkSlidePart.CreateRelationshipToPart(imagePart);
+            }
+
+            return true;
+        }
+
+        // Sorry, you'll need to create a new image part
+        imgPartRId = string.Empty;
+        return false;
+    }
+
     private P.Picture CreatePPicture(Stream imageStream, string shapeName)
     {
-        var imgPartRId = this.sdkSlidePart.NextRelationshipId();
-        var mStream = new MemoryStream();
-        imageStream.CopyTo(mStream);
-        var mime = Mime(mStream);
-        var imagePart = this.sdkSlidePart.AddNewPart<ImagePart>(mime, imgPartRId);
-        imageStream.Position = 0;
-        imagePart.FeedData(imageStream);
+        var scStream = new ImageStream(imageStream);
+        var hash = scStream.Base64Hash;
+
+        // Does this part already exist in the presentation?
+        if (!this.TryGetImageRId(hash, out var imgPartRId))
+        {
+            // No, let's create it!
+            var mimeType = scStream.Mime;
+            (imgPartRId, var imagePart) = this.sdkSlidePart.AddImagePart(imageStream, mimeType);
+            this.mediaCollection.SetImagePart(hash, imagePart);
+        }
 
         var nonVisualPictureProperties = new P.NonVisualPictureProperties();
         var shapeId = (uint)this.NextShapeId();
@@ -614,62 +605,27 @@ internal sealed class SlideShapes : ISlideShapes
         return pPicture;
     }
 
-    private void AddPictureSvg(SvgDocument image, Stream svgStream)
-    {
-        // Determine intrinsic size in 
-        var size = GetSvgPixelSize(image);
-
-        // Ensure image size is not inserted at an unreasonable size
-        // See Issue #683 Large-dimension SVG files lead to error opening in PowerPoint
-        //
-        // Ideally, we'd want to use the slide dimensions itself. However, not sure how we get that
-        // here, so will use a fixed "safe" size
-        if (size.Height > 500.0f)
-        {
-            size.Height = 500.0f;
-            size.Width = size.Height * image.Width.Value / image.Height.Value;
-        }
-
-        if (size.Width > 500.0f)
-        {
-            size.Width = 500.0f;
-            size.Height = size.Width * image.Height.Value / image.Width.Value;
-        }
-
-        // Rasterize image at intrinsic size
-        var bitmap = image.Draw((int)size.Width, (int)size.Height);
-        var rasterStream = new MemoryStream();
-        bitmap.Save(rasterStream, ImageFormat.Png);
-        rasterStream.Position = 0;
-
-        // Create the picture
-        var pPicture = this.CreatePPictureSvg(rasterStream, svgStream, "Picture");
-
-        // Fix up the sizes
-        var xEmu = UnitConverter.HorizontalPixelToEmu(100m);
-        var yEmu = UnitConverter.VerticalPixelToEmu(100m);
-        var cxEmu = UnitConverter.HorizontalPixelToEmu((decimal)size.Width);
-        var cyEmu = UnitConverter.VerticalPixelToEmu((decimal)size.Height);
-        var transform2D = pPicture.ShapeProperties!.Transform2D!;
-        transform2D.Offset!.X = xEmu;
-        transform2D.Offset!.Y = yEmu;
-        transform2D.Extents!.Cx = cxEmu;
-        transform2D.Extents!.Cy = cyEmu;
-    }
-
     private P.Picture CreatePPictureSvg(Stream rasterStream, Stream svgStream, string shapeName)
     {
-        // The A.Blip contains a raster representation of the vector image
-        var imgPartRId = this.sdkSlidePart.NextRelationshipId();
-        var imagePart = this.sdkSlidePart.AddNewPart<ImagePart>("image/png", imgPartRId);
-        rasterStream.Position = 0;
-        imagePart.FeedData(rasterStream);
-
         // The SVG Blip contains the vector data
-        var svgPartRId = this.sdkSlidePart.NextRelationshipId();
-        var svgPart = this.sdkSlidePart.AddNewPart<ImagePart>("image/svg+xml", svgPartRId);
-        svgStream.Position = 0;
-        svgPart.FeedData(svgStream);
+        var svgHash = new ImageStream(svgStream).Base64Hash;
+        if (!this.TryGetImageRId(svgHash, out var svgPartRId))
+        {
+            (svgPartRId, var svgPart) = this.sdkSlidePart.AddImagePart(svgStream, "image/svg+xml");
+            this.mediaCollection.SetImagePart(svgHash, svgPart);
+        }
+
+        // There is a possible optimization here. If we've previously in this session rasterized
+        // this SVG, we could look up the rasterized image by reference to its vector image so
+        // we wouldn't have to rasterize it every time.
+
+        // The A.Blip contains a raster representation of the vector image
+        var imgHash = new ImageStream(rasterStream).Base64Hash;
+        if (!this.TryGetImageRId(imgHash, out var imgPartRId))
+        {
+            (imgPartRId, var imagePart) = this.sdkSlidePart.AddImagePart(rasterStream, "image/png");
+            this.mediaCollection.SetImagePart(imgHash, imagePart);
+        }
 
         var nonVisualPictureProperties = new P.NonVisualPictureProperties();
         var shapeId = (uint)this.NextShapeId();
