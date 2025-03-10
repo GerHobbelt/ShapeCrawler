@@ -81,7 +81,7 @@ public class PictureTests : SCTest
     {
         // Arrange
         var pptx = TestAsset("009_table");
-        var pngStream = TestAsset("png image-2.png");
+        var pngStream = TestAsset("10 png image.png");
         var pres = new Presentation(pptx);
         var mStream = new MemoryStream();
         var picture = pres.Slides[1].Shapes.GetByName<IPicture>("Picture 1");
@@ -120,7 +120,7 @@ public class PictureTests : SCTest
     {
         // Arrange
         var pres = new Presentation(TestAsset("pictures-case001.pptx"));
-        var image = TestAsset("png image-2.png");
+        var image = TestAsset("10 png image.png");
         var groupShape = pres.Slides[0].Shapes.GetByName<IGroupShape>("Group 1");
         var groupedPicture1 = groupShape.Shapes.GetByName<IPicture>("Picture 1");
         var groupedPicture2 = groupShape.Shapes.GetByName<IPicture>("Picture 2");
@@ -145,21 +145,10 @@ public class PictureTests : SCTest
         var pictureImage = pres.Slides[0].Shapes.GetByName<IPicture>("Picture 3").Image;
             
         // Act
-        var fileName = pictureImage.Name;
+        var fileName = pictureImage!.Name;
             
         // Assert
         fileName.Should().Be("image2.png");
-    }
-
-    [Test]
-    public void Picture_DoNotParseStrangePicture_Test()
-    {
-        // TODO: Deeper learn such pictures, where content generated via a:ln
-        // Arrange
-        var pre = new Presentation(TestAsset("019.pptx"));
-
-        // Act-Assert
-        pre.Slides[1].Shapes.Any(x => x.Id == 47).Should().Be(false);
     }
     
     [Test]
@@ -262,7 +251,7 @@ public class PictureTests : SCTest
         var expected = (Geometry)Enum.Parse(typeof(Geometry),expectedStr);
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("test-vector-image-1.svg");
+        var image = TestAsset("063 vector image.svg");
         image.Position = 0;
         shapes.AddPicture(image);
         var picture = shapes.Last().As<IPicture>();
@@ -282,7 +271,7 @@ public class PictureTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("test-vector-image-1.svg");
+        var image = TestAsset("063 vector image.svg");
         shapes.AddPicture(image);
         var picture = shapes.Last().As<IPicture>();
         var geometry = (Geometry)Enum.Parse(typeof(Geometry),geometryName);

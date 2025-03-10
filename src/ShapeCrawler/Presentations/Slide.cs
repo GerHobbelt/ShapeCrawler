@@ -8,10 +8,8 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using ShapeCrawler.Drawing;
 using ShapeCrawler.Exceptions;
-using ShapeCrawler.Extensions;
 using ShapeCrawler.ShapeCollection;
 using ShapeCrawler.Shared;
-using SkiaSharp;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -105,24 +103,6 @@ internal sealed class Slide : ISlide
     public IShape Shape<T>(string name)
         where T : IShape
         => this.Shapes.GetByName<T>(name);
-
-    public void SaveAsPng(Stream stream)
-    {
-        var imageInfo = new SKImageInfo((int)this.slideSize.Width(), (int)this.slideSize.Height());
-        var surface = SKSurface.Create(imageInfo);
-        var canvas = surface.Canvas;
-        canvas.Clear(SKColors.White); // TODO: #344 get real
-
-        foreach (var autoShape in this.Shapes.OfType<AutoShape>())
-        {
-            autoShape.Draw(canvas);
-        }
-
-        var image = surface.Snapshot();
-        var bitmap = SKBitmap.FromImage(image);
-        var data = bitmap.Encode(SKEncodedImageFormat.Png, 100);
-        data.SaveTo(stream);
-    }
 
     public IList<ITextBox> TextFrames()
     {
@@ -245,7 +225,7 @@ internal sealed class Slide : ISlide
         }
 
         // https://learn.microsoft.com/en-us/office/open-xml/presentation/working-with-notes-slides
-        var rid = this.SdkSlidePart.NextRelationshipId();
+        var rid = new SOpenXmlPart(this.SdkSlidePart).NextRelationshipId();
         var notesSlidePart1 = this.SdkSlidePart.AddNewPart<NotesSlidePart>(rid);
         var notesSlide = new NotesSlide(
             new CommonSlideData(

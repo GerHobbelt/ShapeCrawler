@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Xml;
-using DocumentFormat.OpenXml.Packaging;
 using FluentAssertions;
 using ImageMagick;
 using NUnit.Framework;
@@ -272,7 +271,7 @@ public class ShapeCollectionTests : SCTest
     {
         // Arrange
         var pptx = TestAsset("001.pptx");
-        var mp3 = TestAsset("test-mp3.mp3");
+        var mp3 = TestAsset("064 mp3.mp3");
         var pres = new Presentation(pptx);
         var shapes = pres.Slides[1].Shapes;
         int xPxCoordinate = 300;
@@ -294,7 +293,7 @@ public class ShapeCollectionTests : SCTest
     public void AddAudio_adds_audio_shape_with_WAVE_content()
     {
         // Arrange
-        var wav = TestAsset("test-wav.wav");
+        var wav = TestAsset("071 wav.wav");
         var pres = new Presentation(TestAsset("001.pptx"));
         var shapes = pres.Slides[1].Shapes;
 
@@ -334,7 +333,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("test-vector-image-1.svg");
+        var image = TestAsset("063 vector image.svg");
         image.Position = 0;
 
         // Act
@@ -350,12 +349,13 @@ public class ShapeCollectionTests : SCTest
     }
 
     [Test]
+    [Category("issue-883")]
     public void AddPicture_should_not_duplicate_the_image_source_When_the_same_svg_image_is_added_twice()
     {
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var svgImage = TestAsset("test-vector-image-1.svg");
+        var svgImage = TestAsset("063 vector image.svg");
 
         // Act
         shapes.AddPicture(svgImage);
@@ -369,6 +369,7 @@ public class ShapeCollectionTests : SCTest
     }
     
     [Test]
+    [Category("issue-883")]
     public void AddPicture_should_not_duplicate_the_image_source_When_the_same_svg_image_is_added_on_two_different_slides()
     {
         // Arrange
@@ -376,7 +377,7 @@ public class ShapeCollectionTests : SCTest
         pres.Slides.AddEmptySlide(SlideLayoutType.Blank);
         var shapesSlide1 = pres.Slides[0].Shapes;
         var shapesSlide2 = pres.Slides[1].Shapes;
-        var image = TestAsset("test-vector-image-1.svg");
+        var image = TestAsset("063 vector image.svg");
 
         // Act
         shapesSlide1.AddPicture(image);
@@ -399,10 +400,36 @@ public class ShapeCollectionTests : SCTest
         var shapesSlide1 = pres.Slides[0].Shapes;
         var shapesSlide2 = pres.Slides[1].Shapes;
 
-        var image = TestAsset("png image-1.png");
+        var image = TestAsset("09 png image.png");
 
         // Act
         shapesSlide1.AddPicture(image);
+        shapesSlide2.AddPicture(image);
+
+        // Assert
+        var sdkPres = SaveAndOpenPresentationAsSdk(pres);
+        var imageParts = sdkPres.PresentationPart!.SlideParts.SelectMany(slidePart => slidePart.ImageParts).Select(imagePart => imagePart.Uri)
+            .ToHashSet();
+        imageParts.Count.Should().Be(1);
+    }
+    
+    [TestCase("08 jpeg image-500w.jpg")]
+    [TestCase("09 png image.png")]
+    [TestCase("03 gif image.gif")]
+    [TestCase("07 tiff image.tiff")]
+    public void AddPicture_should_not_duplicate_the_image_source_When_the_same_image_is_added_a_second_apart(string fileName)
+    {
+        // Arrange
+        var pres = new Presentation();
+        pres.Slides.AddEmptySlide(SlideLayoutType.Blank);
+        var shapesSlide1 = pres.Slides[0].Shapes;
+        var shapesSlide2 = pres.Slides[1].Shapes;
+
+        var image = TestAsset(fileName);
+
+        // Act
+        shapesSlide1.AddPicture(image);
+        Task.Delay(1000).Wait();
         shapesSlide2.AddPicture(image);
 
         // Assert
@@ -421,7 +448,7 @@ public class ShapeCollectionTests : SCTest
         pres.Slides.AddEmptySlide(SlideLayoutType.Blank);
         var slide = pres.Slides[0];
         var shapes = slide.Shapes;
-        var image = TestAsset("png image-1.png");
+        var image = TestAsset("09 png image.png");
         shapes.AddPicture(image);
 
         // Act
@@ -440,7 +467,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("test-vector-image-1.svg");
+        var image = TestAsset("063 vector image.svg");
         image.Position = 0;
         shapes.AddPicture(image);
         var picture = (IPicture)shapes.Last();
@@ -458,7 +485,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("test-vector-image-large.svg");
+        var image = TestAsset("068 vector image-large.svg");
         image.Position = 0;
 
         // Act
@@ -487,7 +514,7 @@ public class ShapeCollectionTests : SCTest
         // dragged in while running PowerPoint
         var pres = new Presentation(TestAsset("055_svg_with_text.pptx"));
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("1x1.svg");
+        var image = TestAsset("066 1x1.svg");
         image.Position = 0;
 
         // ACT
@@ -541,7 +568,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("test-vector-image-wide.svg");
+        var image = TestAsset("070 vector image-wide.svg");
         image.Position = 0;
 
         // Act
@@ -556,14 +583,13 @@ public class ShapeCollectionTests : SCTest
         pres.Validate();
     }
     
-    //Test that the png image is created with transparent background
     [Test]
     public void AddPicture_adds_picture_with_transparent_background()
     {
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("test-vector-image-blank.svg");
+        var image = TestAsset("067 vector image-blank.svg");
 
         // Act
         shapes.AddPicture(image);
@@ -578,21 +604,97 @@ public class ShapeCollectionTests : SCTest
         });
     }
 
-    [Test]
-    public void AddPicture_adds_picture()
+    [TestCase("09 png image.png", "image/png")]
+    [TestCase("06 jpeg image.jpg", "image/jpeg")]
+    [TestCase("03 gif image.gif", "image/gif")]
+    [TestCase("07 tiff image.tiff", "image/tiff")]
+    public void AddPicture_adds_should_set_valid_mime(string image, string expectedMime)
     {
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("png image-1.png");
+        var imageStream = TestAsset(image);
+
+        // Act
+        shapes.AddPicture(imageStream);
+
+        // Assert
+        shapes.Should().HaveCount(1);
+        var picture = (IPicture)shapes.Last();
+        picture.Image!.Mime.Should().Be(expectedMime);
+        pres.Validate();
+    }
+    
+    [TestCase("webp image.webp")]
+    [TestCase("01 avif image.avif")]
+    [TestCase("02 bmp image.bmp")]
+    public void AddPicture_should_set_png_mime(string image)
+    {
+        // Arrange
+        var pres = new Presentation();
+        var shapes = pres.Slides[0].Shapes;
+        var imageStream = TestAsset(image);
+
+        // Act
+        shapes.AddPicture(imageStream);
+
+        // Assert
+        var addedPicture = shapes.Last<IPicture>();
+        
+        addedPicture.Image!.Mime.Should().Be("image/png");
+        
+        var actualImage = new MagickImage(addedPicture.Image!.AsByteArray());
+        var expectedImage = new MagickImage(TestAsset("reference image.png"));
+        actualImage.GetPixels().Should().BeEquivalentTo(expectedImage.GetPixels());
+        
+        pres.Validate();
+    }
+    
+    [Test]
+    [Explicit("Should be fixed with https://github.com/ShapeCrawler/ShapeCrawler/issues/892")]
+    public void AddPicture_adds_ico_picture_with_conversion_to_png()
+    {
+        // Arrange
+        var pres = new Presentation();
+        var shapes = pres.Slides[0].Shapes;
+        var image = TestAsset("ico image.ico");
 
         // Act
         shapes.AddPicture(image);
 
         // Assert
-        shapes.Should().HaveCount(1);
         var picture = (IPicture)shapes.Last();
-        picture.ShapeType.Should().Be(ShapeType.Picture);
+        picture.Image!.Mime.Should().Be("image/png");
+        
+        // Ensure the image is valid
+        var convertedImage = new MagickImage(picture.Image!.AsByteArray());
+        var originalImage = new MagickImage(TestAsset("reference image.png"));
+        
+        convertedImage.GetPixels().Should().BeEquivalentTo(originalImage.GetPixels());
+        
+        pres.Validate();
+    }
+    
+    [Test]
+    public void AddPicture_adds_should_set_jpeg_mime()
+    {
+        // Arrange
+        var pres = new Presentation();
+        var shapes = pres.Slides[0].Shapes;
+        var image = TestAsset("04 heic image.heic");
+
+        // Act
+        shapes.AddPicture(image);
+
+        // Assert
+        var picture = shapes.Last<IPicture>();
+        
+        picture.Image!.Mime.Should().Be("image/jpeg");
+        
+        var actualImage = new MagickImage(picture.Image!.AsByteArray());
+        var expectedImage = new MagickImage(TestAsset("reference image.jpg"));
+        actualImage.GetPixels().Should().BeEquivalentTo(expectedImage.GetPixels());
+        
         pres.Validate();
     }
 
@@ -608,16 +710,16 @@ public class ShapeCollectionTests : SCTest
         var addingPicture = () => shapes.AddPicture(stream);
 
         // Assert
-        addingPicture.Should().Throw<Exception>();
+        addingPicture.Should().Throw<SCException>();
     }
-
+    
     [Test]
     public void AddPicture_adds_picture_with_correct_Height()
     {
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("png image-1.png");
+        var image = TestAsset("09 png image.png");
 
         // Act
         shapes.AddPicture(image);
@@ -633,7 +735,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("jpeg image.jpg");
+        var image = TestAsset("06 jpeg image.jpg");
 
         // Act
         shapes.AddPicture(image);
@@ -643,20 +745,24 @@ public class ShapeCollectionTests : SCTest
         addedPictureImage.Mime.Should().Be("image/jpeg");
     }
     
-    [Test]
-    public void AddPicture_should_not_change_the_underlying_file_size()
+    [TestCase("08 jpeg image-500w.jpg")]
+    [TestCase("09 png image.png")]
+    [TestCase("03 gif image.gif")]
+    [TestCase("07 tiff image.tiff")]
+    public void AddPicture_should_not_change_the_underlying_file_size(string image)
     {
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("jpeg image-500w.jpg");
+        var imageStream = TestAsset(image);
+        const int fileSizeTolerance = 2000;
 
         // Act
-        shapes.AddPicture(image);
+        shapes.AddPicture(imageStream);
 
         // Assert
         var addedPictureImage = shapes.Last<IPicture>().Image!;
-        addedPictureImage.AsByteArray().Length.Should().BeLessThan(38000);
+        addedPictureImage.AsByteArray().Length.Should().BeLessOrEqualTo((int)imageStream.Length + fileSizeTolerance);
     }
     
     [Test]
@@ -666,7 +772,7 @@ public class ShapeCollectionTests : SCTest
         var pres = new Presentation();
         pres.Slides.AddEmptySlide(SlideLayoutType.Blank);
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("png image-1.png");
+        var image = TestAsset("09 png image.png");
 
         // Act
         shapes.AddPicture(image);
@@ -680,7 +786,7 @@ public class ShapeCollectionTests : SCTest
             .ToHashSet();
         imageParts.Count.Should().Be(1);
     }
-
+    
     [Test]
     public void AddShape_adds_rectangle_with_valid_id_and_name()
     {
@@ -854,7 +960,7 @@ public class ShapeCollectionTests : SCTest
     public void Add_adds_slide_from_the_Same_presentation()
     {
         // Arrange
-        var pptxStream = TestAsset("charts-case003.pptx");
+        var pptxStream = TestAsset("003 chart.pptx");
         var pres = new Presentation(pptxStream);
         var expectedSlidesCount = pres.Slides.Count + 1;
         var slideCollection = pres.Slides;
@@ -871,7 +977,7 @@ public class ShapeCollectionTests : SCTest
     public void Add_adds_slide_After_updating_chart_series()
     {
         // Arrange
-        var pptx = TestAsset("charts_bar-chart.pptx");
+        var pptx = TestAsset("001 bar chart.pptx");
         var pres = new Presentation(pptx);
         var chart = pres.Slides[0].Shapes.GetByName<IChart>("Bar Chart 1");
         var expectedSlidesCount = pres.Slides.Count + 1;
@@ -950,13 +1056,14 @@ public class ShapeCollectionTests : SCTest
     }
     
     [Test]
+    [Category("issue-883")]
     public void AddPicture_should_not_duplicate_the_image_source_When_the_same_svg_image_is_added_to_a_loaded_presentation()
     {
         // Arrange
         var pres = new Presentation();
         pres.Slides.AddEmptySlide(SlideLayoutType.Blank);
         var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("test-vector-image-1.svg");
+        var image = TestAsset("063 vector image.svg");
         shapes.AddPicture(image);
         var loadedPres = SaveAndOpenPresentation(pres);
 
@@ -979,7 +1086,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation(TestAsset("008.pptx"));
         var shapes = pres.Slide(1).Shapes;
-        var pngImage = TestAsset("png image-1.png");
+        var pngImage = TestAsset("09 png image.png");
 
         // Act
         shapes.AddPicture(pngImage);
@@ -989,5 +1096,36 @@ public class ShapeCollectionTests : SCTest
         var checkXml = SaveAndOpenPresentationAsSdk(pres);
         var imageParts = checkXml.PresentationPart!.SlideParts.SelectMany(slidePart => slidePart.ImageParts).ToArray();
         imageParts.Length.Should().Be(1);
+    }
+    
+    [Test]
+    public void AddPicture_sets_384_ppi_resolution_for_svg_picture()
+    {
+        // Arrange
+        var pres = new Presentation();
+        var shapes = pres.Slides[0].Shapes;
+        var svg = TestAsset("063 vector image.svg");
+        
+        // Act
+        shapes.AddPicture(svg);
+        
+        // Assert
+        var addedPicture = shapes.Last<IPicture>();
+        var addedPictureInfo = new MagickImageInfo(addedPicture.Image!.AsByteArray());
+        var addedPictureResolution = addedPictureInfo.Density!.ChangeUnits(DensityUnit.PixelsPerInch);
+        addedPictureResolution.X.Should().BeApproximately(384, 0.1);
+        addedPictureResolution.Y.Should().BeApproximately(384, 0.1);
+    }
+    
+    [Test]
+    public void AddPieChart_add_pie_chart()
+    {
+        var pres = new Presentation(@"c:\temp\pie chart.pptx");
+        var shapes = pres.Slide(1).Shapes;
+        
+        shapes.AddPieChart(100, 100, 400, 300);
+        
+        pres.SaveAs(@"c:\temp\output.pptx");
+        pres.Validate();
     }
 }

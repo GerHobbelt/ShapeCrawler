@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -8,11 +8,11 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using ImageMagick;
+using ImageMagick.Formats;
 using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
 using ShapeCrawler.Presentations;
 using ShapeCrawler.Shared;
-using SkiaSharp;
 using A = DocumentFormat.OpenXml.Drawing;
 using A14 = DocumentFormat.OpenXml.Office2010.Drawing;
 using A16 = DocumentFormat.OpenXml.Office2016.Drawing;
@@ -25,7 +25,16 @@ internal sealed class SlideShapes : ISlideShapes
 {
     private const long DefaultTableWidthEmu = 8128000L;
     
-    private static readonly MagickFormat[] SupportedImageFormats = [MagickFormat.Bmp, MagickFormat.Emf, MagickFormat.Eps, MagickFormat.Gif, MagickFormat.Jpe, MagickFormat.Jpeg, MagickFormat.Png, MagickFormat.Svg, MagickFormat.Tif, MagickFormat.Tiff];
+    private static readonly MagickFormat[] SupportedImageFormats = 
+    [
+        MagickFormat.Jpeg, 
+        MagickFormat.Png,
+        MagickFormat.Gif,
+        MagickFormat.Tif, 
+        MagickFormat.Tiff,
+        MagickFormat.Svg
+    ];
+    
     private static readonly MagickFormat[] VectorImageFormats = [MagickFormat.Svg];
 
     private readonly SlidePart sdkSlidePart;
@@ -127,23 +136,21 @@ internal sealed class SlideShapes : ISlideShapes
         image.Position = 0;
         try
         {
-            using var imageMagick = new MagickImage(
-                image,
-                new MagickReadSettings { BackgroundColor = MagickColors.Transparent });
-
-            if (imageMagick.Format == MagickFormat.Unknown)
+            using var imageMagick = new MagickImage(image, new MagickReadSettings { BackgroundColor = MagickColors.Transparent });
+            var originalFormat = imageMagick.Format;
+            if (!SupportedImageFormats.Contains(imageMagick.Format))
             {
-                throw new SCException("Unsupported image format.");
+                imageMagick.Format = imageMagick.HasAlpha ? MagickFormat.Png : MagickFormat.Jpeg;
             }
 
-            var originalFormat = imageMagick.Format;
-            if (!SupportedImageFormats.Contains(imageMagick.Format) || VectorImageFormats.Contains(imageMagick.Format))
+            if (VectorImageFormats.Contains(imageMagick.Format))
             {
                 imageMagick.Format = MagickFormat.Png;
+                imageMagick.Density = new Density(384, DensityUnit.PixelsPerInch); // in PowerPoint, the resolution of the rasterized version of SVG is set to 384 PPI
             }
-
-            uint width = imageMagick.Width;
-            uint height = imageMagick.Height;
+            
+            var width = imageMagick.Width;
+            var height = imageMagick.Height;
 
             if (height > 500)
             {
@@ -162,13 +169,19 @@ internal sealed class SlideShapes : ISlideShapes
                 imageMagick.Resize(width, height);
             }
 
-            P.Picture pPicture;
-            using var rasterStream = new MemoryStream();
+            imageMagick.Settings.SetDefines(
+                new PngWriteDefines
+            {
+                ExcludeChunks = PngChunkFlags.date
+            });
+
+            var rasterStream = new MemoryStream();
             imageMagick.Write(rasterStream);
             image.Position = 0;
-            pPicture = VectorImageFormats.Contains(originalFormat) 
-                ? this.CreatePPictureSvg(rasterStream, image, "Picture") 
-                : this.CreatePPicture(image, "Picture");
+            rasterStream.Position = 0;
+            var pPicture = VectorImageFormats.Contains(originalFormat)
+                ? this.CreateSvgPPicture(rasterStream, image, "Picture")
+                : this.CreatePPicture(rasterStream, "Picture", GetMimeType(imageMagick.Format));
 
             // Fix up the sizes
             var xEmu = UnitConverter.HorizontalPixelToEmu(100m);
@@ -181,10 +194,19 @@ internal sealed class SlideShapes : ISlideShapes
             transform2D.Extents!.Cx = cxEmu;
             transform2D.Extents!.Cy = cyEmu;
         }
+        catch (MagickDelegateErrorException ex) when (ex.Message.Contains("ghostscript"))
+        {
+            throw new SCException("The stream is an image format that requires GhostScript which is not installed on your system.", ex);
+        }
         catch (MagickException)
         {
-            throw new SCException("Unsupported image format.");
+            throw new SCException("The stream is not an image or a non-supported image format. You can raise a discussion at https://github.com/ShapeCrawler/ShapeCrawler/discussions to find out about the possibilities supporting it.");
         }
+    }
+    
+    public void AddPieChart(int x, int y, int width, int height)
+    {
+        new SSlidePart(this.sdkSlidePart).AddPieChart();
     }
 
     public void AddVideo(int x, int y, Stream stream)
@@ -480,7 +502,14 @@ internal sealed class SlideShapes : ISlideShapes
     public IEnumerator<IShape> GetEnumerator() => this.shapes.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
-    
+
+    private static string GetMimeType(MagickFormat format)
+    {
+        var mime = MagickFormatInfo.Create(format)?.MimeType;
+        
+        return mime ?? throw new SCException("Unsupported image format.");
+    }
+
     private (int, string) GenerateIdAndName()
     {
         var maxId = 0;
@@ -551,7 +580,7 @@ internal sealed class SlideShapes : ISlideShapes
         return false;
     }
 
-    private P.Picture CreatePPicture(Stream imageStream, string shapeName)
+    private P.Picture CreatePPicture(Stream imageStream, string shapeName, string mimeType = "image/png")
     {
         var scStream = new ImageStream(imageStream);
         var hash = scStream.Base64Hash;
@@ -559,8 +588,7 @@ internal sealed class SlideShapes : ISlideShapes
         // Does this part already exist in the presentation?
         if (!this.TryGetImageRId(hash, out var imgPartRId))
         {
-            // No, let's create it!
-            var mimeType = scStream.Mime;
+            // No, let's create it!;
             (imgPartRId, var imagePart) = this.sdkSlidePart.AddImagePart(imageStream, mimeType);
             this.mediaCollection.SetImagePart(hash, imagePart);
         }
@@ -605,7 +633,7 @@ internal sealed class SlideShapes : ISlideShapes
         return pPicture;
     }
 
-    private P.Picture CreatePPictureSvg(Stream rasterStream, Stream svgStream, string shapeName)
+    private P.Picture CreateSvgPPicture(Stream rasterStream, Stream svgStream, string shapeName)
     {
         // The SVG Blip contains the vector data
         var svgHash = new ImageStream(svgStream).Base64Hash;

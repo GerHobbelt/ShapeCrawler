@@ -30,7 +30,7 @@ internal sealed class Field : IParagraphPortion
     }
 
     /// <inheritdoc/>
-    public string? Text
+    public string Text
     {
         get => this.portionText.Text();
         set => this.portionText.Update(value!);
@@ -57,7 +57,7 @@ internal sealed class Field : IParagraphPortion
         if (arPr?.GetFirstChild<A.Highlight>()?.RgbColorModelHex is not A.RgbColorModelHex aSrgbClr
             || aSrgbClr.Val is null)
         {
-            return Color.Transparent;
+            return Color.NoColor;
         }
 
         // Gets node value.
