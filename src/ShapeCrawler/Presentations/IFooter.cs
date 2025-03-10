@@ -1,12 +1,11 @@
 ﻿using System.Linq;
-using ShapeCrawler.Presentations;
 
 #pragma warning disable IDE0130
 namespace ShapeCrawler;
 #pragma warning restore IDE0130
 
 /// <summary>
-///     Represents Header and Footer manager.
+///     Represents Footer.
 /// </summary>
 public interface IFooter
 {
@@ -28,9 +27,9 @@ public interface IFooter
 
 internal sealed class Footer : IFooter
 {
-    private readonly PresentationCore presentationCore;
+    private readonly Presentation presentationCore;
 
-    internal Footer(PresentationCore presentationCore)
+    internal Footer(Presentation presentationCore)
     {
         this.presentationCore = presentationCore;
     }

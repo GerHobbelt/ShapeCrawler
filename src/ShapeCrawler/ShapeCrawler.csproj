@@ -10,7 +10,8 @@ This library provides a simplified object model on top of the Open XML SDK for m
     <PackageTags>ShapeCrawler Presentation PPTX  PowerPoint Slides OpenXml OOXML</PackageTags>
     <NeutralLanguage>en</NeutralLanguage>
     <LangVersion>latest</LangVersion>
-    <PackageReleaseNotes>🍀Added properties `ISpacing.BeforeSpacingPoints` and `ISpacing.AfterSpacingPoints` for the paragraph [#563](https://github.com/ShapeCrawler/ShapeCrawler/issues/563)  </PackageReleaseNotes>
+    <PackageReleaseNotes>🐞Fixed updating table cell margins [#916](https://github.com/ShapeCrawler/ShapeCrawler/issues/916)  
+🐞Fixed font size [#905](https://github.com/ShapeCrawler/ShapeCrawler/issues/905)  </PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/ShapeCrawler/ShapeCrawler</PackageProjectUrl>
     <RepositoryType>Git</RepositoryType>
     <RepositoryUrl>https://github.com/ShapeCrawler/ShapeCrawler</RepositoryUrl>
@@ -20,14 +21,15 @@ This library provides a simplified object model on top of the Open XML SDK for m
     <Title>ShapeCrawler</Title>
     <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU</Platforms>
-    <PackageIcon>package-icon.jpg</PackageIcon>
     <Nullable>enable</Nullable>
     <NoWarn>OOXML0001</NoWarn>
     <IsTrimmable Condition="'$(TargetFramework)' == 'net9.0'">true</IsTrimmable> 
+    <Copyright>Copyright (c) 2019-2025 Adam Shakhabov</Copyright> 
+    <PackageIcon>package icon.jpg</PackageIcon> 
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="package-icon.jpg" Pack="true" PackagePath="" />
+   <ItemGroup>
+    <None Include="Resources/package icon.jpg" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -36,6 +38,7 @@ This library provides a simplified object model on top of the Open XML SDK for m
     <DocumentationFile>bin\Debug\ShapeCrawler.xml</DocumentationFile>
     <TargetFramework>net9.0</TargetFramework>
     <RunAnalyzers>false</RunAnalyzers>
+    <NoWarn>CS0219</NoWarn>
   </PropertyGroup>  
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">

@@ -19,15 +19,10 @@
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.95.4" />
     <PackageReference Include="FluentAssertions" Version="[7.1.0]" />
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.4.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
     <PackageReference Include="NUnit" Version="4.3.2" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
     <PackageReference Include="NUnit.Analyzers" Version="4.6.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="coverlet.collector" Version="6.0.2">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -212,6 +207,8 @@
     <EmbeddedResource Include="Assets\images\10 png image.png" />
     <None Remove="Assets\images\png image-large.png" />
     <EmbeddedResource Include="Assets\images\png image-large.png" />
+    <None Remove="Assets\062_shape-adjustments.pptx" />
+    <EmbeddedResource Include="Assets\062_shape-adjustments.pptx" />
     <None Remove="Assets\064 mp3.mp3" />
     <EmbeddedResource Include="Assets\064 mp3.mp3" />
     <None Remove="Assets\063 vector image.svg" />
@@ -232,6 +229,12 @@
     <EmbeddedResource Include="Assets\images\08 jpeg image-500w.jpg" />
     <None Remove="Assets\061_font-color.pptx" />
     <EmbeddedResource Include="Assets\061_font-color.pptx" />
+    <None Remove="Assets\tables\table-case002.pptx" />
+    <EmbeddedResource Include="Assets\tables\table-case002.pptx" />
+    <None Remove="Assets\tables\table-case003.pptx" />
+    <EmbeddedResource Include="Assets\tables\table-case003.pptx" />
+    <None Remove="Assets\tables\table-case004.pptx" />
+    <EmbeddedResource Include="Assets\tables\table-case004.pptx" />
     <None Remove="Assets\images\webp image.webp" />
     <EmbeddedResource Include="Assets\images\webp image.webp" />
     <None Remove="Assets\images\01 avif image.avif" />

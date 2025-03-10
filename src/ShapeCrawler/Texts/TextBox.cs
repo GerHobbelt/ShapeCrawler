@@ -4,8 +4,8 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using ShapeCrawler.Positions;
-using ShapeCrawler.ShapeCollection;
-using ShapeCrawler.Shared;
+using ShapeCrawler.Shapes;
+using ShapeCrawler.Units;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -16,7 +16,7 @@ internal sealed record TextBox : ITextBox
     private readonly OpenXmlPart sdkTypedOpenXmlPart;
     private readonly OpenXmlElement sdkTextBody;
 
-    private TextVerticalAlignment? valignment;
+    private TextVerticalAlignment? vAlignment;
 
     internal TextBox(OpenXmlPart sdkTypedOpenXmlPart, OpenXmlElement sdkTextBody)
     {
@@ -143,27 +143,27 @@ internal sealed record TextBox : ITextBox
     {
         get
         {
-            if (this.valignment.HasValue)
+            if (this.vAlignment.HasValue)
             {
-                return this.valignment.Value;
+                return this.vAlignment.Value;
             }
 
             var aBodyPr = this.sdkTextBody.GetFirstChild<A.BodyProperties>();
 
             if (aBodyPr!.Anchor?.Value == A.TextAnchoringTypeValues.Center)
             {
-                this.valignment = TextVerticalAlignment.Middle;
+                this.vAlignment = TextVerticalAlignment.Middle;
             }
             else if (aBodyPr.Anchor?.Value == A.TextAnchoringTypeValues.Bottom)
             {
-                this.valignment = TextVerticalAlignment.Bottom;
+                this.vAlignment = TextVerticalAlignment.Bottom;
             }
             else
             {
-                this.valignment = TextVerticalAlignment.Top;
+                this.vAlignment = TextVerticalAlignment.Top;
             }
 
-            return this.valignment.Value;
+            return this.vAlignment.Value;
         }
 
         set => this.SetVerticalAlignment(value);
@@ -186,7 +186,7 @@ internal sealed record TextBox : ITextBox
             aBodyPr.Anchor = aTextAlignmentTypeValue;
         }
 
-        this.valignment = alignmentValue;
+        this.vAlignment = alignmentValue;
     }
     
     private void SetText(string value)
@@ -261,9 +261,6 @@ internal sealed record TextBox : ITextBox
             }
 
             requiredHeight += integerPart * textHeight;
-
-            // TODO
-            // requiredHeight += (integerPart * textHeight) + (decimal)SpacingBefore + (decimal) SpacingAfter;
         }
 
         this.UpdateShapeHeight(requiredHeight, tMarginPixel, bMarginPixel, currentBlockHeight, this.sdkTextBody.Parent!);

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
-using ShapeCrawler.Excel;
+using ShapeCrawler.Spreadsheets;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace ShapeCrawler.Charts;
@@ -64,7 +64,7 @@ internal sealed class Categories : IReadOnlyList<ICategory>
             indexToCategory = nextIndexToCategory;
         }
 
-        return indexToCategory.Select(kvp => kvp.Value).ToList();
+        return [.. indexToCategory.Select(kvp => kvp.Value)];
     }
     
     private List<ICategory> CategoryList()
@@ -88,18 +88,18 @@ internal sealed class Categories : IReadOnlyList<ICategory>
             if (cNumReference is not null)
             {
                 cFormula = cNumReference.Formula!;
-                cachedValues = cNumReference.NumberingCache!.Descendants<C.NumericValue>().ToList();
+                cachedValues = [.. cNumReference.NumberingCache!.Descendants<C.NumericValue>()];
             }
             else
             {
                 cFormula = cStrReference.Formula!;
-                cachedValues = cStrReference.StringCache!.Descendants<C.NumericValue>().ToList();
+                cachedValues = [.. cStrReference.StringCache!.Descendants<C.NumericValue>()];
             }
 
             var normalizedFormula = cFormula.Text.Replace("'", string.Empty).Replace("$", string.Empty); // eg: Sheet1!$A$2:$A$5 -> Sheet1!A2:A5
             var sheetName = Regex.Match(normalizedFormula, @".+(?=\!)", RegexOptions.None, TimeSpan.FromMilliseconds(1000)).Value; // eg: Sheet1!A2:A5 -> Sheet1
             var cellsRange = Regex.Match(normalizedFormula, @"(?<=\!).+", RegexOptions.None, TimeSpan.FromMilliseconds(1000)).Value; // eg: Sheet1!A2:A5 -> A2:A5
-            var addresses = new ExcelCellsRange(cellsRange).Addresses();
+            var addresses = new CellsRange(cellsRange).Addresses();
             for (var i = 0; i < addresses.Count; i++)
             {
                 var category = new SheetCategory(this.sdkChartPart, sheetName, addresses[i], cachedValues[i]);

@@ -1,62 +1,213 @@
-﻿#pragma warning disable IDE0130
+using System;
+using DocumentFormat.OpenXml.Packaging;
+
+#pragma warning disable IDE0130
 namespace ShapeCrawler;
 #pragma warning restore IDE0130
 
 /// <summary>
-///     Represents a presentation properties.
+///     Represents the presentation properties.
 /// </summary>
 public interface IPresentationProperties
 {
     /// <summary>
-    ///     Gets the presentation slides.
-    /// </summary>
-    ISlides Slides { get; }
-
-    /// <summary>
-    ///     Gets or sets presentation slides width in pixels.
-    /// </summary>
-    decimal SlideWidth { get; set; }
-
-    /// <summary>
-    ///     Gets or sets the presentation slides height.
-    /// </summary>
-    decimal SlideHeight { get; set; }
-
-    /// <summary>
-    ///     Gets the collection of the slide masters.
-    /// </summary>
-    ISlideMasterCollection SlideMasters { get; }
-    
-    /// <summary>
-    ///     Gets the collection of sections.
-    /// </summary>
-    ISections Sections { get; }
-    
-    /// <summary>
-    ///     Gets Header and Footer manager.
-    /// </summary>
-    IFooter Footer { get; }
-
-    /// <summary>
-    ///     Gets the properties (meta-data) of the file.
+    ///     Gets or sets the categories.
     /// </summary>
     /// <remarks>
-    ///     These properties are not presentation-specific.
+    ///     The method to delimit categories is not specified.
     /// </remarks>
-    IFileProperties FileProperties { get; }
-    
-    /// <summary>
-    ///     Returns slide with specified number.
-    /// </summary>
-    ISlide Slide(int number);
+    string? Categories { get; set; }
 
     /// <summary>
-    ///     Saves presentation.
+    ///     Gets or sets the status of the content. Example values include "Draft", "Reviewed", and "Final".
     /// </summary>
-    void Save();
-    
+    string? ContentStatus { get; set; }
+
     /// <summary>
-    ///     Gets a presentation byte array.
+    ///     Gets or sets the creation date and time.
     /// </summary>
-    byte[] AsByteArray();
+    DateTime? Created { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the primary creator.
+    /// </summary>
+    /// <remarks>
+    ///     The identification is environment-specific and can consist of a name, email address, employee ID, etc. It is recommended that this value be only as verbose as necessary to identify the individual.     
+    /// </remarks>
+    string? Author { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the description or abstract of the contents.
+    /// </summary>
+    string? Comments { get; set; }
+
+    /// <summary>
+    ///     Gets or sets a delimited set of keywords (tags) to support searching and indexing.
+    /// </summary>
+    /// <remarks>
+    ///      This is typically a list of terms that are not available elsewhere in the properties. The delimiter to use is not specified.
+    /// </remarks>
+    string? Tags { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the primary language of the package content.
+    /// </summary>
+    /// <remarks>
+    ///     The language tag is composed of one or more parts: A primary language subtag and a (possibly empty) series of subsequent subtags, for example, "EN-US". These values MUST follow the convention specified in RFC 3066. Show in File Explorer, but not in PowerPoint client.
+    /// </remarks>
+    string? Language { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the user who performed the last modification.
+    /// </summary>
+    /// <remarks>
+    ///     The identification is environment-specific and can consist of a name, email address, employee ID, etc. It is recommended that this value be only as verbose as necessary to identify the individual.
+    /// </remarks>
+    string? LastModifiedBy { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the date and time of the last printing.
+    /// </summary>
+    DateTime? LastPrinted { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the date and time of the last modification.
+    /// </summary>
+    DateTime? Modified { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the revision number.
+    /// </summary>
+    /// <remarks>
+    ///      This value indicates the number of saves or revisions. The application is responsible for updating this value after each revision. Show in File Explorer, but not in PowerPoint client.
+    /// </remarks>
+    int? RevisionNumber { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the topic of the content.
+    /// </summary>
+    string? Subject { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the title.
+    /// </summary>
+    string? Title { get; set; }
+
+    /// <summary>
+    ///     Gets or sets the version number.
+    /// </summary>
+    /// <remarks>
+    ///     This value is set by the user or by the application.
+    /// </remarks>
+    string? Version { get; set; }
+}
+
+internal class PresentationProperties(IPackageProperties packageProperties): IPresentationProperties
+{
+    public string? Author
+    {
+        get => packageProperties.Creator;
+        set => packageProperties.Creator = value;
+    }
+
+    public string? Categories 
+    {
+        get => packageProperties.Category;
+        set => packageProperties.Category = value;
+    }
+    
+    public string? ContentType 
+    {
+        get => packageProperties.ContentType;
+        set => packageProperties.ContentType = value;
+    }
+    
+    public string? ContentStatus 
+    {
+        get => packageProperties.ContentStatus;
+        set => packageProperties.ContentStatus = value;
+    }
+    
+    public DateTime? Created 
+    {
+        get => packageProperties.Created;
+        set => packageProperties.Created = value;
+    }
+    
+    public string? Comments 
+    {
+        get => packageProperties.Description;
+        set => packageProperties.Description = value;
+    }
+    
+    public string? Identifier 
+    {
+        get => packageProperties.Identifier;
+        set => packageProperties.Identifier = value;
+    }
+    
+    public string? Tags 
+    {
+        get => packageProperties.Keywords;
+        set => packageProperties.Keywords = value;
+    }
+    
+    public string? Language 
+    {
+        get => packageProperties.Language;
+        set => packageProperties.Language = value;
+    }
+    
+    public string? LastModifiedBy 
+    {
+        get => packageProperties.LastModifiedBy;
+        set => packageProperties.LastModifiedBy = value;
+    }
+    
+    public DateTime? LastPrinted 
+    {
+        get => packageProperties.LastPrinted;
+        set => packageProperties.LastPrinted = value;
+    }
+    
+    public DateTime? Modified 
+    {
+        get => packageProperties.Modified;
+        set => packageProperties.Modified = value;
+    }
+    
+    public int? RevisionNumber 
+    {
+        get
+        {
+            var revision = packageProperties.Revision;
+            if (string.IsNullOrWhiteSpace(revision) || !int.TryParse(revision, out var result))
+            {
+                return null;
+            }
+            else
+            {
+                return result;
+            }
+        }
+        set => packageProperties.Revision = value?.ToString();
+    }
+    
+    public string? Subject 
+    {
+        get => packageProperties.Subject;
+        set => packageProperties.Subject = value;
+    }
+    
+    public string? Title 
+    {
+        get => packageProperties.Title;
+        set => packageProperties.Title = value;
+    }
+    
+    public string? Version 
+    {
+        get => packageProperties.Version;
+        set => packageProperties.Version = value;
+    }    
 }

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NUnit.Framework;
+using ShapeCrawler.Presentations;
 using ShapeCrawler.Tests.Unit.Helpers;
 
 // ReSharper disable SuggestVarOrType_SimpleTypes
@@ -89,7 +90,7 @@ public class FontTests : SCTest
     [Test]
     [SlideShape("028.pptx", 1, 4098, 32)]
     [SlideShape("029.pptx", 1, "Content Placeholder 2", 25)]
-    // [SlideShape("072 content placeholder.pptx", 1, "Content Placeholder 1", 18)]
+    [SlideShape("072 content placeholder.pptx", 1, "Content Placeholder 1", 18)]
     public void Size_Getter_returns_font_size_of_Placeholder(IShape shape, int expectedSize)
     {
         // Arrange
@@ -172,7 +173,7 @@ public class FontTests : SCTest
 
         // Assert
         portion.Font.IsBold.Should().BeTrue();
-        presentation.SaveAs(mStream);
+        presentation.Save(mStream);
         presentation = new Presentation(mStream);
         nonPlaceholderAutoShape = (IShape)presentation.Slides[0].Shapes.First(sp => sp.Id == 2);
         portion = nonPlaceholderAutoShape.TextBox.Paragraphs[0].Portions[0];
@@ -218,7 +219,7 @@ public class FontTests : SCTest
 
         // Assert
         portion.Font.IsItalic.Should().BeTrue();
-        presentation.SaveAs(mStream);
+        presentation.Save(mStream);
         presentation = new Presentation(mStream);
         nonPlaceholderAutoShape = (IShape)presentation.Slides[0].Shapes.First(sp => sp.Id == 2);
         portion = nonPlaceholderAutoShape.TextBox.Paragraphs[0].Portions[0];
@@ -239,7 +240,7 @@ public class FontTests : SCTest
 
         // Assert
         portion.Font.IsItalic.Should().BeFalse();
-        presentation.SaveAs(mStream);
+        presentation.Save(mStream);
 
         presentation = new Presentation(mStream);
         placeholderAutoShape = (IShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
@@ -261,7 +262,7 @@ public class FontTests : SCTest
 
         // Assert
         portion.Font.Underline.Should().Be(DocumentFormat.OpenXml.Drawing.TextUnderlineValues.Single);
-        presentation.SaveAs(mStream);
+        presentation.Save(mStream);
 
         presentation = new Presentation(mStream);
         placeholderAutoShape = (IShape)presentation.Slides[2].Shapes.First(sp => sp.Id == 7);
@@ -394,7 +395,7 @@ public class FontTests : SCTest
 
         // Assert
         pres.Validate();
-        pres.SaveAs(mStream);
+        pres.Save(mStream);
         pres = new Presentation(mStream);
         font = pres.Slides[slideNumber - 1].Shapes.GetByName(shapeName).TextBox!.Paragraphs[0].Portions[0].Font;
         font.Size.Should().Be(newSize);
@@ -416,7 +417,7 @@ public class FontTests : SCTest
 
         // Assert
         font.IsBold.Should().BeTrue();
-        pres.SaveAs(mStream);
+        pres.Save(mStream);
         pres = new Presentation(mStream);
         placeholder = pres.Slides[slideNumber - 1].Shapes.GetById<IShape>(shapeId);
         font = placeholder.TextBox.Paragraphs[0].Portions[0].Font;
@@ -453,7 +454,7 @@ public class FontTests : SCTest
 
         // Act
         font.OffsetEffect = expectedOffsetEffect;
-        pres.SaveAs(mStream);
+        pres.Save(mStream);
 
         // Assert
         pres = new Presentation(mStream);

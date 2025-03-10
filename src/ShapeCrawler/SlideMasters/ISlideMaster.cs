@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using ShapeCrawler.Shapes;
 using ShapeCrawler.SlideMasters;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -27,7 +28,7 @@ public interface ISlideMaster
     /// <summary>
     ///     Gets the collection of master shapes.
     /// </summary>
-    IShapes Shapes { get; }
+    IShapeCollection Shapes { get; }
 
     /// <summary>
     ///     Gets theme.
@@ -58,14 +59,14 @@ internal sealed class SlideMaster : ISlideMaster
         this.sdkSlideMasterPart = sdkSlideMasterPart;
         this.layouts = new Lazy<SlideLayouts>(() => new SlideLayouts(this.sdkSlideMasterPart));
         this.slideNumber = new Lazy<MasterSlideNumber?>(this.CreateSlideNumber);
-        this.Shapes = new ShapeCollection.Shapes(this.sdkSlideMasterPart);
+        this.Shapes = new ShapeCollection(this.sdkSlideMasterPart);
     }
 
     public IImage? Background => null;
     
     public IReadOnlyList<ISlideLayout> SlideLayouts => this.layouts.Value;
     
-    public IShapes Shapes { get; }
+    public IShapeCollection Shapes { get; }
     
     public ITheme Theme => new Theme(this.sdkSlideMasterPart, this.sdkSlideMasterPart.ThemePart!.Theme);
     

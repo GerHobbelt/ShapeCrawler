@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
-using ShapeCrawler.ShapeCollection;
+using ShapeCrawler.Shapes;
 using ShapeCrawler.Texts;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -34,7 +34,7 @@ internal class PortionFontSize : IFontSize
             return size.Value / HalfPointsInPoint;
         }
 
-        var indentLevel = new SAParagraph(this.aText.Ancestors<A.Paragraph>().First()).IndentLevel();
+        var indentLevel = new SCAParagraph(this.aText.Ancestors<A.Paragraph>().First()).IndentLevel();
         SlideMasterPart sdkSlideMasterPart;
         if (this.sdkTypedOpenXmlPart is SlideMasterPart)
         {

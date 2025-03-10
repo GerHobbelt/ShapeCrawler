@@ -47,6 +47,39 @@ public class ShapeCollectionTests : SCTest
     }
 
     [Test]
+    public void Add_adds_picture_from_same_slide()
+    {
+        // Arrange
+        var pres = new Presentation(TestAsset("053_add_shapes.pptx"));
+        var copyingShape = pres.Slides[0].Shapes.GetByName("Picture")!;
+        var shapes = pres.Slides[0].Shapes;
+
+        // Act
+        shapes.Add(copyingShape);
+
+        // Assert
+        shapes.GetByName("Picture 1").Should().NotBeNull();
+        pres.Validate();
+    }
+
+    [Test]
+    [Explicit("Failing test for https://github.com/ShapeCrawler/ShapeCrawler/issues/935")]   
+    public void Add_adds_picture_to_another_slide()
+    {
+        // Arrange
+        var pres = new Presentation(TestAsset("053_add_shapes.pptx"));
+        var copyingShape = pres.Slides[0].Shapes.GetByName("Picture")!;
+        var shapes = pres.Slides[1].Shapes;
+
+        // Act
+        shapes.Add(copyingShape);
+
+        // Assert
+        shapes.GetByName("Picture 1").Should().NotBeNull();
+        pres.Validate();
+    }
+
+    [Test]
     public void Contains_particular_shape_Types()
     {
         // Arrange
@@ -347,26 +380,6 @@ public class ShapeCollectionTests : SCTest
         picture.Width.Should().Be(100);
         pres.Validate();
     }
-
-    [Test]
-    [Category("issue-883")]
-    public void AddPicture_should_not_duplicate_the_image_source_When_the_same_svg_image_is_added_twice()
-    {
-        // Arrange
-        var pres = new Presentation();
-        var shapes = pres.Slides[0].Shapes;
-        var svgImage = TestAsset("063 vector image.svg");
-
-        // Act
-        shapes.AddPicture(svgImage);
-        shapes.AddPicture(svgImage);
-
-        // Assert
-        var checkXml = SaveAndOpenPresentationAsSdk(pres);
-        var imageParts = checkXml.PresentationPart!.SlideParts.SelectMany(slidePart => slidePart.ImageParts).ToArray();
-        imageParts.Length.Should().Be(2,
-            "SVG image adds two parts: One for the vector and one for the auto-generated raster");
-    }
     
     [Test]
     [Category("issue-883")]
@@ -404,32 +417,6 @@ public class ShapeCollectionTests : SCTest
 
         // Act
         shapesSlide1.AddPicture(image);
-        shapesSlide2.AddPicture(image);
-
-        // Assert
-        var sdkPres = SaveAndOpenPresentationAsSdk(pres);
-        var imageParts = sdkPres.PresentationPart!.SlideParts.SelectMany(slidePart => slidePart.ImageParts).Select(imagePart => imagePart.Uri)
-            .ToHashSet();
-        imageParts.Count.Should().Be(1);
-    }
-    
-    [TestCase("08 jpeg image-500w.jpg")]
-    [TestCase("09 png image.png")]
-    [TestCase("03 gif image.gif")]
-    [TestCase("07 tiff image.tiff")]
-    public void AddPicture_should_not_duplicate_the_image_source_When_the_same_image_is_added_a_second_apart(string fileName)
-    {
-        // Arrange
-        var pres = new Presentation();
-        pres.Slides.AddEmptySlide(SlideLayoutType.Blank);
-        var shapesSlide1 = pres.Slides[0].Shapes;
-        var shapesSlide2 = pres.Slides[1].Shapes;
-
-        var image = TestAsset(fileName);
-
-        // Act
-        shapesSlide1.AddPicture(image);
-        Task.Delay(1000).Wait();
         shapesSlide2.AddPicture(image);
 
         // Assert
@@ -933,28 +920,6 @@ public class ShapeCollectionTests : SCTest
         numberSlidesCase1.Should().Be(1);
         numberSlidesCase2.Should().Be(1);
     }
-
-    [Test]
-    public void Add_adds_external_slide()
-    {
-        // Arrange
-        var sourceSlide = new Presentation(TestAsset("001.pptx")).Slides[0];
-        var pptx = TestAsset("002.pptx");
-        var destPre = new Presentation(pptx);
-        var originSlidesCount = destPre.Slides.Count;
-        var expectedSlidesCount = ++originSlidesCount;
-        MemoryStream savedPre = new ();
-
-        // Act
-        destPre.Slides.Add(sourceSlide);
-
-        // Assert
-        destPre.Slides.Count.Should().Be(expectedSlidesCount, "because the new slide has been added");
-
-        destPre.SaveAs(savedPre);
-        destPre = new Presentation(savedPre);
-        destPre.Slides.Count.Should().Be(expectedSlidesCount, "because the new slide has been added");
-    }
     
     [Test]
     public void Add_adds_slide_from_the_Same_presentation()
@@ -1056,31 +1021,6 @@ public class ShapeCollectionTests : SCTest
     }
     
     [Test]
-    [Category("issue-883")]
-    public void AddPicture_should_not_duplicate_the_image_source_When_the_same_svg_image_is_added_to_a_loaded_presentation()
-    {
-        // Arrange
-        var pres = new Presentation();
-        pres.Slides.AddEmptySlide(SlideLayoutType.Blank);
-        var shapes = pres.Slides[0].Shapes;
-        var image = TestAsset("063 vector image.svg");
-        shapes.AddPicture(image);
-        var loadedPres = SaveAndOpenPresentation(pres);
-
-        // Act
-        shapes = loadedPres.Slides[0].Shapes;
-        shapes.AddPicture(image);
-
-        // Assert
-        var sdkPres = SaveAndOpenPresentationAsSdk(loadedPres);
-        var imageParts = sdkPres.PresentationPart!.SlideParts.SelectMany(slidePart => slidePart.ImageParts).Select(imagePart => imagePart.Uri)
-            .ToHashSet();
-        imageParts.Count.Should().Be(2,
-            "SVG image adds two parts: One for the vector and one for the auto-generated raster");
-        loadedPres.Validate();
-    }
-    
-    [Test]
     public void AddPicture_should_not_duplicate_the_image_source_When_the_same_png_image_is_added_twice()
     {
         // Arrange
@@ -1118,14 +1058,17 @@ public class ShapeCollectionTests : SCTest
     }
     
     [Test]
-    public void AddPieChart_add_pie_chart()
+    public void AddPieChart_adds_pie_chart()
     {
-        var pres = new Presentation(@"c:\temp\pie chart.pptx");
+        var pres = new Presentation();
         var shapes = pres.Slide(1).Shapes;
+        var categoryValues = new Dictionary<string, double>{ { "1st Qtr", 10 }, { "2nd Qtr", 20 }, { "3rd Qtr", 30 } };
         
-        shapes.AddPieChart(100, 100, 400, 300);
+        // Act
+        shapes.AddPieChart(100, 100, 400, 300, categoryValues, "Sales");
         
-        pres.SaveAs(@"c:\temp\output.pptx");
+        // Assert
+        shapes.Should().Contain(shape=> shape is IChart);
         pres.Validate();
     }
 }

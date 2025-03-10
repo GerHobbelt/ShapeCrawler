@@ -2,6 +2,7 @@
 using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Packaging;
 using NUnit.Framework;
+using ShapeCrawler.Presentations;
 
 namespace ShapeCrawler.Tests.Unit.Helpers;
 
@@ -54,7 +55,7 @@ public abstract class SCTest
     protected static Presentation SaveAndOpenPresentation(IPresentation presentation)
     {
         var stream = new MemoryStream();
-        presentation.SaveAs(stream);
+        presentation.Save(stream);
 
         return new Presentation(stream);
     }
@@ -62,25 +63,11 @@ public abstract class SCTest
     protected static PresentationDocument SaveAndOpenPresentationAsSdk(IPresentation presentation)
     {
         var stream = new MemoryStream();
-        presentation.SaveAs(stream);
+        presentation.Save(stream);
         stream.Position = 0;
 
         return PresentationDocument.Open(stream, true);
     }
-
-#if DEBUG
-
-    protected void SaveResult(IPresentation pres)
-    {
-
-        var testFolder = Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "TestResults",
-            TestContext.CurrentContext.Test.MethodName);
-        Directory.CreateDirectory(testFolder);
-
-        pres.SaveAs(Path.Combine(testFolder, "result.pptx"));
-    }
-
-#endif
 
     private static IPresentation GetPresentationFromAssembly(string fileName)
     {

@@ -5,9 +5,9 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using ShapeCrawler.Drawing;
-using ShapeCrawler.Excel;
-using ShapeCrawler.Exceptions;
-using ShapeCrawler.ShapeCollection;
+using ShapeCrawler.Shapes;
+using ShapeCrawler.Slides;
+using ShapeCrawler.Spreadsheets;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -25,11 +25,11 @@ internal sealed class Chart : Shape, IChart
     private string? chartTitle;
 
     internal Chart(
-        OpenXmlPart sdkTypedOpenXmlPart, 
+        OpenXmlPart openXmlPart, 
         ChartPart sdkChartPart, 
         P.GraphicFrame pGraphicFrame,
         IReadOnlyList<ICategory> categories)
-        : base(sdkTypedOpenXmlPart, pGraphicFrame)
+        : base(openXmlPart, pGraphicFrame)
     {
         this.SdkChartPart = sdkChartPart;
         this.SdkGraphicFrame = pGraphicFrame;
@@ -38,8 +38,8 @@ internal sealed class Chart : Shape, IChart
         this.SdkPlotArea = sdkChartPart.ChartSpace.GetFirstChild<C.Chart>() !.PlotArea!;
         this.cXCharts = this.SdkPlotArea.Where(e => e.LocalName.EndsWith("Chart", StringComparison.Ordinal));
         var pShapeProperties = sdkChartPart.ChartSpace.GetFirstChild<C.ShapeProperties>() !;
-        this.Outline = new SlideShapeOutline(sdkTypedOpenXmlPart, pShapeProperties);
-        this.Fill = new ShapeFill(sdkTypedOpenXmlPart, pShapeProperties);
+        this.Outline = new SlideShapeOutline(openXmlPart, pShapeProperties);
+        this.Fill = new ShapeFill(openXmlPart, pShapeProperties);
         this.SeriesList = new SeriesList(
             sdkChartPart,
             this.SdkPlotArea.Where(e => e.LocalName.EndsWith("Chart", StringComparison.Ordinal)));
@@ -105,7 +105,7 @@ internal sealed class Chart : Shape, IChart
         {
             if (this.ParseXValues() == null)
             {
-                throw new NotSupportedException(ExceptionMessages.NotXValues);
+                throw new NotSupportedException($"This chart type has not {nameof(this.XValues)} property. You can check it via {nameof(this.HasXValues)} property.");
             }
 
             return this.ParseXValues() !;
@@ -118,7 +118,7 @@ internal sealed class Chart : Shape, IChart
     
     public override bool Removeable => true;
     
-    public byte[] BookByteArray() => new ExcelBook(this.SdkChartPart).AsByteArray();
+    public byte[] BookByteArray() => new Spreadsheet(this.SdkChartPart).AsByteArray();
     
     public override void Remove() => this.SdkGraphicFrame.Remove();
     
@@ -198,7 +198,7 @@ internal sealed class Chart : Shape, IChart
             return cachedPointValues;
         }
 
-        return new ExcelBook(this.SdkChartPart).FormulaValues(cXValues.NumberReference.Formula!.Text);
+        return new Spreadsheet(this.SdkChartPart).FormulaValues(cXValues.NumberReference.Formula!.Text);
     }
 
     private OpenXmlElement? GetFirstSeries()

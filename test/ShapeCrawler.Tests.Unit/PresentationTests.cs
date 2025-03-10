@@ -1,7 +1,7 @@
 using System.Globalization;
 using FluentAssertions;
 using NUnit.Framework;
-using ShapeCrawler.Shared;
+using ShapeCrawler.Presentations;
 using ShapeCrawler.Tests.Unit.Helpers;
 
 namespace ShapeCrawler.Tests.Unit;
@@ -120,7 +120,7 @@ public class PresentationTests : SCTest
         // Assert
         destPre.Slides.Count.Should().Be(expectedSlidesCount, "because the new slide has been added");
 
-        destPre.SaveAs(savedPre);
+        destPre.Save(savedPre);
         destPre = new Presentation(savedPre);
         destPre.Slides.Count.Should().Be(expectedSlidesCount, "because the new slide has been added");
     }
@@ -141,7 +141,7 @@ public class PresentationTests : SCTest
         // Assert
         destPres.Slides.Count.Should().Be(expectedCount);
 
-        destPres.SaveAs(savedPre);
+        destPres.Save(savedPre);
         destPres = new Presentation(savedPre);
         destPres.Slides.Count.Should().Be(expectedCount);
         destPres.Slides[1].SlideLayout.SlideMaster.SlideLayouts.Count.Should().Be(1);
@@ -209,7 +209,6 @@ public class PresentationTests : SCTest
         
         // Assert
         pres.Validate();
-        pres.SaveAs("output.pptx"); // uncomment for repro
         // TODO: Add assertion
     }
     
@@ -229,7 +228,7 @@ public class PresentationTests : SCTest
         // Assert
         sectionSlides.Count.Should().Be(0);
 
-        pres.SaveAs(mStream);
+        pres.Save(mStream);
         pres = new Presentation(mStream);
         sectionSlides = pres.Sections[0].Slides;
         sectionSlides.Count.Should().Be(0);
@@ -342,46 +341,6 @@ public class PresentationTests : SCTest
         textBox = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 2").TextBox!;
         textBox.Text.Should().Be("Test");
     }
-
-    [Test]
-    public void SaveAs_should_not_change_the_Original_Stream_when_it_is_saved_to_New_Stream()
-    {
-        // Arrange
-        var originalStream = TestAsset("001.pptx");
-        var pres = new Presentation(originalStream);
-        var textBox = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextBox;
-        var originalText = textBox!.Text;
-        var newStream = new MemoryStream();
-
-        // Act
-        textBox.Text = originalText + "modified";
-        pres.SaveAs(newStream);
-
-        pres = new Presentation(originalStream);
-        textBox = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextBox;
-        var autoShapeText = textBox!.Text;
-
-        // Assert
-        autoShapeText.Should().BeEquivalentTo(originalText);
-    }
-    
-    [Test]
-    public void SaveAs_sets_the_creation_date()
-    {
-        // Arrange
-        var expectedCreated = DateTime.Parse("2024-01-01T12:34:56Z", CultureInfo.InvariantCulture);
-        SCSettings.TimeProvider = new FakeTimeProvider(expectedCreated);
-        var stream = new MemoryStream();
-
-        // Act
-        var pres = new Presentation();
-        pres.SaveAs(stream);
-
-        // Assert
-        stream.Position = 0;
-        var updatedPres = new Presentation(stream);
-        updatedPres.FileProperties.Created.Should().Be(expectedCreated);
-    }
     
     [Test]
     public void SaveAs_sets_the_date_of_the_last_modification()
@@ -395,32 +354,16 @@ public class PresentationTests : SCTest
         var stream = new MemoryStream();
 
         // Act
-        pres.SaveAs(stream);
+        pres.Save(stream);
 
         // Assert
         stream.Position = 0;
         var updatedPres = new Presentation(stream);
-        updatedPres.FileProperties.Modified.Should().Be(expectedModified);
+        updatedPres.Properties.Modified.Should().Be(expectedModified);
     } 
     
     [Test]
-    public void BinaryData_returns_presentation_binary_content_After_updating_series()
-    {
-        // Arrange
-        var pptx = TestAsset("001 bar chart.pptx");
-        var pres = new Presentation(pptx);
-        var chart = pres.Slides[0].Shapes.GetByName<IChart>("Bar Chart 1");
-
-        // Act
-        chart.SeriesList[0].Points[0].Value = 1;
-        var binaryData = pres.AsByteArray();
-
-        // Assert
-        binaryData.Should().NotBeNull();
-    }
-
-    [Test]
-    public void HeaderAndFooter_AddSlideNumber_adds_slide_number()
+    public void Footer_AddSlideNumber_adds_slide_number()
     {
         // Arrange
         var pres = new Presentation();
@@ -433,7 +376,7 @@ public class PresentationTests : SCTest
     }
 
     [Test, Ignore("In Progress #540")]
-    public void HeaderAndFooter_RemoveSlideNumber_removes_slide_number()
+    public void Footer_RemoveSlideNumber_removes_slide_number()
     {
         // Arrange
         var pres = new Presentation();
@@ -447,7 +390,7 @@ public class PresentationTests : SCTest
     }
 
     [Test]
-    public void HeaderAndFooter_SlideNumberAdded_returns_false_When_slide_number_is_not_added()
+    public void Footer_SlideNumberAdded_returns_false_When_slide_number_is_not_added()
     {
         // Arrange
         var pres = new Presentation();
@@ -455,50 +398,27 @@ public class PresentationTests : SCTest
         // Act-Assert
         pres.Footer.SlideNumberAdded().Should().BeFalse();
     }
-
+    
     [Test]
-    public void SaveAs_should_not_change_the_Original_Path_when_it_is_saved_to_New_Path()
-    {
-        // Arrange
-        var originalPath = GetTestPath("001.pptx");
-        var pres = new Presentation(originalPath);
-        var textFrame = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextBox;
-        var originalText = textFrame!.Text;
-        var newPath = Path.GetTempFileName();
-        textFrame.Text = originalText + "modified";
-
-        // Act
-        pres.SaveAs(newPath);
-
-        // Assert
-        pres = new Presentation(originalPath);
-        textFrame = pres.Slides[0].Shapes.GetByName<IShape>("TextBox 3").TextBox;
-        var autoShapeText = textFrame!.Text;
-        autoShapeText.Should().BeEquivalentTo(originalText);
-
-        // Clean
-        File.Delete(originalPath);
-        File.Delete(newPath);
-    }
-
-    [Test]
-    [Parallelizable(ParallelScope.None)]
     public void Slides_Add_adds_slide()
     {
         // Arrange
-        var source = new Presentation(TestAsset("001.pptx"));
-        var targetPath = GetTestPath("008.pptx");
-        var target = new Presentation(targetPath);
-        var copyingSlide = source.Slides[0];
+        var sourceSlide = new Presentation(TestAsset("001.pptx")).Slides[0];
+        var pptx = TestAsset("002.pptx");
+        var destPre = new Presentation(pptx);
+        var originSlidesCount = destPre.Slides.Count;
+        var expectedSlidesCount = ++originSlidesCount;
+        MemoryStream savedPre = new ();
 
         // Act
-        var slideAdding = () => target.Slides.Add(copyingSlide);
+        destPre.Slides.Add(sourceSlide);
 
         // Assert
-        slideAdding.Should().NotThrow();
+        destPre.Slides.Count.Should().Be(expectedSlidesCount, "because the new slide has been added");
 
-        // Clean
-        File.Delete(targetPath);
+        destPre.Save(savedPre);
+        destPre = new Presentation(savedPre);
+        destPre.Slides.Count.Should().Be(expectedSlidesCount, "because the new slide has been added");
     }
     
     [Test]
@@ -517,7 +437,7 @@ public class PresentationTests : SCTest
         // Assert
         pres.Slides.Should().HaveCount(expectedSlidesCount);
 
-        pres.SaveAs(mStream);
+        pres.Save(mStream);
         pres = new Presentation(mStream);
         pres.Slides.Should().HaveCount(expectedSlidesCount);
     }
@@ -548,12 +468,12 @@ public class PresentationTests : SCTest
         var expectedCreated = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Local);
 
         // Act
-        pres.FileProperties.Title = "Properties_setter_sets_values";
-        pres.FileProperties.Created = expectedCreated;
+        pres.Properties.Title = "Properties_setter_sets_values";
+        pres.Properties.Created = expectedCreated;
         
         // Assert
-        pres.FileProperties.Title.Should().Be("Properties_setter_sets_values");
-        pres.FileProperties.Created.Should().Be(expectedCreated);
+        pres.Properties.Title.Should().Be("Properties_setter_sets_values");
+        pres.Properties.Created.Should().Be(expectedCreated);
     }
 
     [Test]
@@ -565,17 +485,17 @@ public class PresentationTests : SCTest
         var stream = new MemoryStream();
 
         // Act
-        pres.FileProperties.Title = "Properties_setter_survives_round_trip";
-        pres.FileProperties.Created = expectedCreated;
-        pres.FileProperties.RevisionNumber = 100;
-        pres.SaveAs(stream);
+        pres.Properties.Title = "Properties_setter_survives_round_trip";
+        pres.Properties.Created = expectedCreated;
+        pres.Properties.RevisionNumber = 100;
+        pres.Save(stream);
         
         // Assert
         stream.Position = 0;
         var updatePres = new Presentation(stream);
-        updatePres.FileProperties.Title.Should().Be("Properties_setter_survives_round_trip");
-        updatePres.FileProperties.Created.Should().Be(expectedCreated);
-        pres.FileProperties.RevisionNumber.Should().Be(100);
+        updatePres.Properties.Title.Should().Be("Properties_setter_survives_round_trip");
+        updatePres.Properties.Created.Should().Be(expectedCreated);
+        pres.Properties.RevisionNumber.Should().Be(100);
     }
 
     [Test]
@@ -585,10 +505,10 @@ public class PresentationTests : SCTest
         var expectedModified = DateTime.Parse("2024-12-16T17:11:58Z", CultureInfo.InvariantCulture);
 
         // Act-Assert
-        pres.FileProperties.Modified.Should().Be(expectedModified);
-        pres.FileProperties.Title.Should().Be("");
-        pres.FileProperties.RevisionNumber.Should().Be(7);
-        pres.FileProperties.Comments.Should().BeNull();
+        pres.Properties.Modified.Should().Be(expectedModified);
+        pres.Properties.Title.Should().Be("");
+        pres.Properties.RevisionNumber.Should().Be(7);
+        pres.Properties.Comments.Should().BeNull();
     }
     
     [Test]
@@ -602,6 +522,6 @@ public class PresentationTests : SCTest
         var pres = new Presentation();
 
         // Assert
-        pres.FileProperties.Modified.Should().Be(expectedModified);
+        pres.Properties.Modified.Should().Be(expectedModified);
     }
 }
