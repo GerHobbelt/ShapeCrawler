@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -54,7 +54,17 @@ internal abstract class Shape : IShape
 
     public int Id => this.shapeId.Value();
 
-    public string Name => this.PShapeTreeElement.NonVisualDrawingProperties().Name!.Value!;
+    public string Name
+    {
+        get => this.PShapeTreeElement.NonVisualDrawingProperties().Name!.Value!;
+        set => this.PShapeTreeElement.NonVisualDrawingProperties().Name = new StringValue(value);
+    }
+
+    public string AltText
+    {
+        get => this.PShapeTreeElement.NonVisualDrawingProperties().Description?.Value ?? string.Empty;
+        set => this.PShapeTreeElement.NonVisualDrawingProperties().Description = new StringValue(value);
+    }
 
     public bool Hidden
     {
@@ -71,13 +81,8 @@ internal abstract class Shape : IShape
     {
         get
         {
-            var pPlaceholderShape = this.PShapeTreeElement.Descendants<P.PlaceholderShape>().FirstOrDefault();
-            if (pPlaceholderShape == null)
-            {
-                throw new SCException(
+            var pPlaceholderShape = this.PShapeTreeElement.Descendants<P.PlaceholderShape>().FirstOrDefault() ?? throw new SCException(
                     $"The shape is not a placeholder. Use {nameof(IShape.IsPlaceholder)} property to check if shape is a placeholder.");
-            }
-            
             var pPlaceholderValue = pPlaceholderShape.Type;
             if (pPlaceholderValue == null)
             {
@@ -140,8 +145,17 @@ internal abstract class Shape : IShape
         }
     } 
         
-
-    public virtual Geometry GeometryType => Geometry.Rectangle;
+    public virtual Geometry GeometryType
+    {
+        get => Geometry.Rectangle;
+        set => throw new SCException("Changing geometry of this shape is not supported");
+    }
+     
+    public virtual decimal CornerSize
+    {
+        get => 0;
+        set => throw new SCException("Changing corner size of this shape is not supported");
+    }
 
     public string? CustomData
     {
@@ -198,12 +212,15 @@ internal abstract class Shape : IShape
             if (aTransform2D == null)
             {
                 aTransform2D = new ReferencedPShape(this.SdkTypedOpenXmlPart, this.PShapeTreeElement).ATransform2D();
-                var angle2 = aTransform2D.Rotation!.Value; // rotation angle in 1/60,000th of a degree
-                return angle2 / 60000d;
+                if (aTransform2D.Rotation is null)
+                {
+                    return 0;
+                }
+
+                return aTransform2D.Rotation.Value / 60000d; // OpenXML rotation angles are stored in units of 1/60,000th of a degree
             }
             
-            var angle = pSpPr.Transform2D!.Rotation!.Value; // rotation angle in 1/60,000th of a degree
-            return angle / 60000d;
+            return pSpPr.Transform2D!.Rotation!.Value / 60000d;
         }
     }
 

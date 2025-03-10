@@ -38,7 +38,7 @@ public struct Color
         : this(red, green, blue, 255)
     {
     }
-    
+
     private Color(int red, int green, int blue, float alpha)
     {
         this.red = red;
@@ -47,7 +47,7 @@ public struct Color
         this.Alpha = alpha;
     }
 
-    private Color((int r, int g, int b, float a) color) 
+    private Color((int r, int g, int b, float a) color)
         : this(color.r, color.g, color.b, color.a)
     {
     }
@@ -74,12 +74,12 @@ public struct Color
     ///     Gets the red value.
     /// </summary>
     public int R => this.red;
-    
+
     /// <summary>
     ///     Gets hexadecimal code.
     /// </summary>
     public string Hex => this.ToString();
-    
+
     /// <summary>
     ///     Gets a value indicating whether the color is solid.
     /// </summary>
@@ -89,6 +89,24 @@ public struct Color
     ///     Gets a value indicating whether the color is transparent.
     /// </summary>
     internal bool IsTransparent => this.Alpha == 0;
+
+    /// <summary>
+    ///     Creates color from Hex value.
+    /// </summary>
+    /// <param name="hex">Hex value.</param>
+    /// <returns>Returns <see langword="true" /> if hex is a valid value. </returns>
+    public static Color FromHex(string hex)
+    {
+#if NETSTANDARD2_0
+        var value = hex.StartsWith("#", StringComparison.Ordinal) ? hex.Substring(1) : hex;
+#else
+        var value = hex.StartsWith("#", StringComparison.Ordinal) ? hex[1..] : hex;
+#endif
+
+        (int r, int g, int b, float a) = ParseHexValue(value);
+
+        return new(r, g, b, a);
+    }
     
     /// <summary>
     ///     Creates color hexadecimal code.
@@ -98,32 +116,12 @@ public struct Color
         // String representation ignores alpha value
         return $"{this.R:X2}{this.G:X2}{this.B:X2}";
     }
-
-    /// <summary>
-    ///     Creates color from Hex value.
-    /// </summary>
-    /// <param name="hex">Hex value.</param>
-    /// <returns>Returns <see langword="true" /> if hex is a valid value. </returns>
-    internal static Color FromHex(string hex)
-    {
-        // We can try to parse:
-        // 3 or 6 chars without an alpha (rgb): F01, FF0011,
-        // 4 or 8 chars with alpha (rgba): F01F, FF0011FF 
-        // Ignores hex values starting with "#" character.
-        var value = hex.StartsWith("#", StringComparison.Ordinal) ? hex.Substring(1) : hex;
-
-        // Parse value.
-        (int r, int g, int b, float a) = ParseHexValue(value);
-
-        // Creates a new instance
-        return new(r, g, b, a);
-    }
     
     /// <summary>
     ///     Returns a color of RGBA.
     /// </summary>
     /// <param name="hex">Hex value.</param>
-    /// <returns>A RGBA color.</returns>
+    /// <returns>An RGBA color.</returns>
     private static (int, int, int, float) ParseHexValue(string hex)
     {
         int r;

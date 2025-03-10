@@ -2,18 +2,18 @@
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>10</LangVersion>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <WarningLevel>0</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <TargetFrameworks>net8.0;net472;net48</TargetFrameworks>
+    <TargetFrameworks>net9.0;net472;net48</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -194,8 +194,16 @@
     <EmbeddedResource Include="Assets\055_svg_with_text.pptx" />
     <None Remove="Assets\056_slide-notes.pptx" />
     <EmbeddedResource Include="Assets\056_slide-notes.pptx" />
+    <None Remove="Assets\057_corner-radius.pptx" />
+    <EmbeddedResource Include="Assets\057_corner-radius.pptx" />
+    <None Remove="Assets\058_bg-fill.pptx" />
+    <EmbeddedResource Include="Assets\058_bg-fill.pptx" />
     <None Remove="Assets\tables-case001.pptx" />
     <EmbeddedResource Include="Assets\tables-case001.pptx" />
+    <None Remove="Assets\059_crop-images.pptx" />
+    <EmbeddedResource Include="Assets\059_crop-images.pptx" />
+    <None Remove="Assets\060_picture-transparency.pptx" />
+    <EmbeddedResource Include="Assets\060_picture-transparency.pptx" />
     <None Remove="Assets\images\png image-1.png" />
     <EmbeddedResource Include="Assets\images\png image-1.png" />
     <None Remove="Assets\images\png image-2.png" />
@@ -222,6 +230,8 @@
     <EmbeddedResource Include="Assets\images\jpeg image.jpg" />
     <None Remove="Assets\images\jpeg image-500w.jpg" />
     <EmbeddedResource Include="Assets\images\jpeg image-500w.jpg" />
+    <None Remove="Assets\061_font-color.pptx" />
+    <EmbeddedResource Include="Assets\061_font-color.pptx" />
   </ItemGroup>
 
 </Project>

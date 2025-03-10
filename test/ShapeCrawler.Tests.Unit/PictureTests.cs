@@ -1,6 +1,9 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using DocumentFormat.OpenXml.Drawing;
 using FluentAssertions;
 using NUnit.Framework;
+using ShapeCrawler.Drawing;
 using ShapeCrawler.Tests.Unit.Helpers;
 
 // ReSharper disable TooManyChainedReferences
@@ -176,5 +179,80 @@ public class PictureTests : SCTest
         
         // Assert
         shapes[0].Name.Should().Be("Picture 2");
+    }
+
+    [Test]
+    [SlideShape("059_crop-images.pptx", 1, "None", "0,0,0,0")]
+    [SlideShape("059_crop-images.pptx", 1, "Top 0.33", "0,0,0.33333,0")]
+    [SlideShape("059_crop-images.pptx", 1, "Left 0.5", "0.5005,0,0,0")]
+    [SlideShape("059_crop-images.pptx", 1, "Bottom 0.66", "0,0,-0.00001,0.66667")]
+    public void Crop_getter_gets_expected_values(IShape shape, string expectedFrameStr)
+    {
+        // Arrange
+        var expected = CroppingFrame.Parse(expectedFrameStr);
+
+        // Act
+        var actual = shape.As<IPicture>().Crop;
+
+        // Assert
+        actual.Should().Be(expected);
+    }
+
+    [TestCase("0,0,0,0")]
+    [TestCase("0.3,0,0,0")]
+    [TestCase("0,0.4,0,0")]
+    [TestCase("0,0,0.5,0")]
+    [TestCase("0,0,0,0.7")]
+    [TestCase("0.1,0.2,0.3,0.5")]
+    public void Crop_setter_sets_expected_values(string expectedFrameStr)
+    {
+        // Arrange
+        var expected = CroppingFrame.Parse(expectedFrameStr);
+        var pres = new Presentation(StreamOf("059_crop-images.pptx"));
+        var picture = pres.Slides[0].Shapes.GetByName<IPicture>("None");
+
+        // Act
+        picture.Crop = expected;
+
+        // Assert
+        var actual = picture.Crop;
+        actual.Should().Be(expected);
+    }
+
+    [Explicit]
+    [TestCase("0")]
+    [TestCase("100")]
+    [TestCase("20")]
+    [TestCase("50")]
+    public void Transparency_setter_sets_expected_values(decimal expected)
+    {
+        // Arrange
+        var pres = new Presentation(StreamOf("060_picture-transparency.pptx"));
+        var picture = pres.Slides[0].Shapes.GetByName<IPicture>("50%");
+
+        // Act
+        picture.Transparency = expected;
+
+        // Assert
+        var actual = picture.Transparency;
+        actual.Should().Be(expected);
+    }
+
+    [Test]
+    [SlideShape("060_picture-transparency.pptx", 1, "0%", "0")]
+    [SlideShape("060_picture-transparency.pptx", 1, "20%", "20")]
+    [SlideShape("060_picture-transparency.pptx", 1, "50%", "50")]
+    [SlideShape("060_picture-transparency.pptx", 1, "80%", "80")]
+    [SlideShape("060_picture-transparency.pptx", 1, "100%", "100")]
+    public void Transparency_getter_gets_expected_values(IShape shape, string expectedStr)
+    {
+        // Arrange
+        var expected = decimal.Parse(expectedStr);
+
+        // Act
+        var actual = shape.As<IPicture>().Transparency;
+
+        // Assert
+        actual.Should().Be(expected);
     }
 }

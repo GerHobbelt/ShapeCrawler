@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Office2019.Drawing.SVG;
 using DocumentFormat.OpenXml.Packaging;
+using ShapeCrawler.Exceptions;
 using ShapeCrawler.Extensions;
 using ShapeCrawler.ShapeCollection;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -39,14 +41,7 @@ internal sealed class Picture : CopyableShape, IPicture
     public IImage Image { get; }
    
     public string? SvgContent => this.GetSvgContent();
-    public void SendToBack()
-    {
-        var parentPShapeTree = this.PShapeTreeElement.Parent!;
-        parentPShapeTree.RemoveChild(this.pPicture);
-        var pGrpSpPr = parentPShapeTree.GetFirstChild<P.GroupShapeProperties>()!;
-        pGrpSpPr.InsertAfterSelf(this.pPicture);
-    }
-
+    
     public override Geometry GeometryType => Geometry.Rectangle;
     
     public override ShapeType ShapeType => ShapeType.Picture;
@@ -60,8 +55,62 @@ internal sealed class Picture : CopyableShape, IPicture
     public override IShapeFill Fill { get; }
     
     public override bool Removeable => true;
+
+    public CroppingFrame Crop
+    {
+        get
+        {
+            var pic = this.pPicture;
+            var aBlipFill = pic.BlipFill
+                ?? throw new SCException("Malformed image has no blip fill");
+
+            var aSrcRect = aBlipFill.GetFirstChild<A.SourceRectangle>();
+
+            return CroppingFrame.FromSourceRectangle(aSrcRect);
+        }
+        
+        set
+        {
+            var pic = this.pPicture;
+            var aBlipFill = pic.BlipFill
+                ?? throw new SCException("Malformed image has no blip fill");
+
+            var aSrcRect = aBlipFill.GetFirstChild<A.SourceRectangle>()
+                ?? aBlipFill.InsertAfter<A.SourceRectangle>(new(), this.aBlip)
+                ?? throw new SCException("Failed to add source rectangle");
+
+            value.UpdateSourceRectangle(aSrcRect);
+        }
+    }
+    
+    public decimal Transparency
+    {
+        get
+        {
+            var aAlphaModFix = this.aBlip.GetFirstChild<A.AlphaModulationFixed>();
+            var amount = aAlphaModFix?.Amount?.Value ?? 100000m;
+            return 100m - amount / 1000m;
+        }
+
+        set
+        {
+            var aAlphaModFix = this.aBlip.GetFirstChild<A.AlphaModulationFixed>()
+                ?? this.aBlip.InsertAt<A.AlphaModulationFixed>(new(),0)
+                ?? throw new SCException("Failed to add AlphaModFix");
+
+            aAlphaModFix.Amount = Convert.ToInt32((100m - value) * 1000m);
+        }
+    }
    
     public override void Remove() => this.pPicture.Remove();
+    
+    public void SendToBack()
+    {
+        var parentPShapeTree = this.PShapeTreeElement.Parent!;
+        parentPShapeTree.RemoveChild(this.pPicture);
+        var pGrpSpPr = parentPShapeTree.GetFirstChild<P.GroupShapeProperties>() !;
+        pGrpSpPr.InsertAfterSelf(this.pPicture);
+    }
 
     internal override void CopyTo(
         int id, 

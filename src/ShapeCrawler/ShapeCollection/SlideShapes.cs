@@ -185,7 +185,11 @@ internal sealed class SlideShapes : ISlideShapes
 
         stream.Position = 0;
         mediaDataPart.FeedData(stream);
-        var imgPartRId = $"rId{Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 5)}";
+#if NETSTANDARD2_0
+        var imgPartRId = $"rId{Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 5)}";      
+#else
+        var imgPartRId = $"rId{Guid.NewGuid().ToString().Replace("-", string.Empty)[..5]}";
+#endif
         var imagePart = this.sdkSlidePart.AddNewPart<ImagePart>("image/png", imgPartRId);
         var imageStream = new Assets(Assembly.GetExecutingAssembly()).StreamOf("video-image.bmp");
         imagePart.FeedData(imageStream);
@@ -279,28 +283,14 @@ internal sealed class SlideShapes : ISlideShapes
         creationId1.AddNamespaceDeclaration("p14", "http://schemas.microsoft.com/office/powerpoint/2010/main");
     }
 
-    public void AddRectangle(int x, int y, int width, int height)
+    public void AddShape(int x, int y, int width, int height, Geometry geometry = Geometry.Rectangle)
     {
         var xml = new Assets(Assembly.GetExecutingAssembly()).StringOf("new-rectangle.xml");
         var sdkPShape = new P.Shape(xml);
 
-        var position = new Position(this.sdkSlidePart, sdkPShape);
-        position.UpdateX(x);
-        position.UpdateY(y);
-
-        var size = new ShapeSize(this.sdkSlidePart, sdkPShape);
-        size.UpdateWidth(width);
-        size.UpdateHeight(height);
-
-        new ShapeId(sdkPShape).Update(this.NextShapeId());
-
-        this.sdkSlidePart.Slide.CommonSlideData!.ShapeTree!.Append(sdkPShape);
-    }
-
-    public void AddRoundedRectangle(int x, int y, int width, int height)
-    {
-        var xml = new Assets(Assembly.GetExecutingAssembly()).StringOf("new-rectangle-rounded-corners.xml");
-        var sdkPShape = new P.Shape(xml);
+        var cNvPr = sdkPShape.Descendants<P.NonVisualDrawingProperties>().FirstOrDefault()
+            ?? throw new SCException("Malformed shape: No NonVisualDrawingProperties");
+        cNvPr.Name = geometry.ToString();
 
         var position = new Position(this.sdkSlidePart, sdkPShape);
         position.UpdateX(x);
@@ -309,6 +299,11 @@ internal sealed class SlideShapes : ISlideShapes
         var size = new ShapeSize(this.sdkSlidePart, sdkPShape);
         size.UpdateWidth(width);
         size.UpdateHeight(height);
+
+        var spPr = sdkPShape.GetFirstChild<P.ShapeProperties>()
+            ?? throw new SCException("Malformed shape: No shape properties");
+        var shapeGeometry = new ShapeGeometry(spPr);
+        shapeGeometry.UpdateGeometry(geometry);
 
         new ShapeId(sdkPShape).Update(this.NextShapeId());
 

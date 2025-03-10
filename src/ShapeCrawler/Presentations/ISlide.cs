@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Packaging;
+
 #if DEBUG
 using System.Threading.Tasks;
 #endif
@@ -13,11 +14,6 @@ namespace ShapeCrawler;
 /// </summary>
 public interface ISlide
 {
-    /// <summary>
-    ///     Gets background image.
-    /// </summary>
-    IImage? Background { get; }
-
     /// <summary>
     ///     Gets or sets custom data. It returns <see langword="null"/> if custom data is not presented.
     /// </summary>
@@ -49,6 +45,11 @@ public interface ISlide
     ITextBox? Notes { get; }
 
     /// <summary>
+    ///     Gets the fill of the slide.
+    /// </summary>
+    IShapeFill Fill { get; }
+    
+    /// <summary>
     ///     List of all text frames on that slide.
     /// </summary>
     public IList<ITextBox> TextFrames();
@@ -68,6 +69,9 @@ public interface ISlide
     /// </summary>
     ITable Table(string name);
     
+    /// <summary>
+    ///     Gets picture by name.
+    /// </summary>
     IPicture Picture(string picture);
     
     /// <summary>
@@ -82,7 +86,12 @@ public interface ISlide
     /// <returns> An instance of <see cref="IShape"/>.</returns>
     IShape Shape(string name);
 
-    IShape Shape<T>(string name) where T : IShape;
+    /// <summary>
+    ///     Returns shape with specified name.
+    /// </summary>
+    /// <typeparam name="T">Shape type.</typeparam>
+    IShape Shape<T>(string name)
+        where T : IShape;
     
 #if DEBUG
     

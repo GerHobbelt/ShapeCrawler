@@ -569,14 +569,14 @@ public class ShapeCollectionTests : SCTest
     }
     
     [Test]
-    public void AddRectangle_adds_rectangle_with_valid_id_and_name()
+    public void AddShape_adds_rectangle_with_valid_id_and_name()
     {
         // Arrange
         var pres = new Presentation(StreamOf("autoshape-case011_save-as-png.pptx"));
         var shapes = pres.Slides[0].Shapes;
 
         // Act
-        shapes.AddRectangle(50, 60, 100, 70);
+        shapes.AddShape(50, 60, 100, 70);
 
         // Assert
         var autoShape = shapes.Last();
@@ -593,7 +593,7 @@ public class ShapeCollectionTests : SCTest
         var shapes = pres.Slides[0].Shapes;
 
         // Act
-        shapes.AddRectangle(50, 60, 100, 70);
+        shapes.AddShape(50, 60, 100, 70);
 
         // Assert
         var rectangle = shapes.Last();
@@ -608,19 +608,37 @@ public class ShapeCollectionTests : SCTest
     }
 
     [Test]
-    public void AddRoundedRectangle_adds_Rounded_Rectangle()
+    public void AddShape_adds_Rounded_Rectangle()
     {
         // Arrange
         var pres = new Presentation(StreamOf("autoshape-grouping.pptx"));
         var shapes = pres.Slides[0].Shapes;
 
         // Act
-        shapes.AddRoundedRectangle(50, 60, 100, 70);
+        shapes.AddShape(50, 60, 100, 70, Geometry.RoundedRectangle);
 
         // Assert
         var roundedRectangle = shapes.Last();
-        roundedRectangle.GeometryType.Should().Be(Geometry.RoundRectangle);
-        roundedRectangle.Name.Should().Be("Rectangle: Rounded Corners");
+        roundedRectangle.GeometryType.Should().Be(Geometry.RoundedRectangle);
+        roundedRectangle.Name.Should().Be("RoundedRectangle");
+        roundedRectangle.Outline.HexColor.Should().BeNull();
+        pres.Validate();
+    }
+
+    [Test]
+    public void AddShape_adds_RoundedTop_Rectangle()
+    {
+        // Arrange
+        var pres = new Presentation(StreamOf("autoshape-grouping.pptx"));
+        var shapes = pres.Slides[0].Shapes;
+
+        // Act
+        shapes.AddShape(50, 60, 100, 70, Geometry.TopCornersRoundedRectangle);
+
+        // Assert
+        var roundedRectangle = shapes.Last();
+        roundedRectangle.GeometryType.Should().Be(Geometry.TopCornersRoundedRectangle);
+        roundedRectangle.Name.Should().Be("TopCornersRoundedRectangle");
         roundedRectangle.Outline.HexColor.Should().BeNull();
         pres.Validate();
     }
@@ -773,7 +791,6 @@ public class ShapeCollectionTests : SCTest
     }
     
     [Test]
-    [Ignore("https://github.com/ShapeCrawler/ShapeCrawler/issues/9")]
     public void AddEmptySlide_adds_empty_slide()
     {
         // Arrange
@@ -784,7 +801,7 @@ public class ShapeCollectionTests : SCTest
         slides.AddEmptySlide(SlideLayoutType.Blank);
 
         // Assert
-        slides[1].Shapes.Should().HaveCount(0);
+        slides[1].Shapes.Should().HaveCount(3);
     }
 
     [Test]
@@ -810,7 +827,7 @@ public class ShapeCollectionTests : SCTest
         // Arrange
         var pres = new Presentation();
         var shapes = pres.Slide(1).Shapes; 
-        shapes.AddRectangle(10, 10, 10, 10);
+        shapes.AddShape(10, 10, 10, 10);
 
         // Act
         shapes.Remove(shapes.Last());

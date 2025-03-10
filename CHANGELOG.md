@@ -1,5 +1,16 @@
 # Changelog  
 
+## Version 0.58.0 - Unreleased
+🍀Added `IHyperlink.AddFile()` [#724](https://github.com/ShapeCrawler/ShapeCrawler/issues/724)  
+
+## Version 0.57.0 - 2024-11-29
+🍀Added `IShape.AltText` [#13](https://github.com/ShapeCrawler/ShapeCrawler/issues/13)  
+🍀Added `ITable.AddColumn()` and `ITable.InsertColumnAfter()` [D-783](https://github.com/ShapeCrawler/ShapeCrawler/discussions/783)  
+🐞Fixed `Shape.Rotation` [#9](https://github.com/ShapeCrawler/ShapeCrawler/issues/9)  
+
+## Version 0.56.0 - 2024-11-22
+🍀Added `IPicture.SendToBack()` [D-777](https://github.com/ShapeCrawler/ShapeCrawler/discussions/777)
+
 ## Version 0.55.1 - 2024-10-18
 🐞Fixed `ISlides.Count` [#749](https://github.com/ShapeCrawler/ShapeCrawler/issues/749)  
 

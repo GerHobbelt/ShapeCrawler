@@ -111,12 +111,33 @@ namespace ShapeCrawler.Tests.Unit
         }
 
         [Test]
+        public void Text_Setter_resizes_shape_to_fit_multi_paragraph_text()
+        {
+            // Arrange
+            var pres = new Presentation(StreamOf("autoshape-case003.pptx"));
+            var shape = pres.Slide(1).Shape("AutoShape 4");
+            var textBox = shape.TextBox;
+
+            for (int i = 1; i < 10; i++)
+            {
+                // Act
+                textBox.Paragraphs.Add();
+                textBox.Paragraphs.Last().Text = "AutoShape 4 some text";
+
+                // Assert
+                shape.Height.Should().BeApproximately((i * 22) + 40.48m, 0.01m);
+                shape.Y.Should().Be(147m - (i * 7));
+                pres.Validate();
+            }
+        }
+
+        [Test]
         public void Text_Setter_sets_text_for_New_Shape()
         {
             // Arrange
             var pres = new Presentation();
             var shapes = pres.Slides[0].Shapes;
-            shapes.AddRectangle(50, 60, 100, 70);
+            shapes.AddShape(50, 60, 100, 70);
             var textFrame = shapes.Last().TextBox;
 
             // Act

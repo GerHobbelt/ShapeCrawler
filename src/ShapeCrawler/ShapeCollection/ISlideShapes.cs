@@ -1,8 +1,9 @@
 ﻿using System.IO;
 using ShapeCrawler.Tables;
 
-// ReSharper disable once CheckNamespace
+#pragma warning disable IDE0130
 namespace ShapeCrawler;
+#pragma warning restore IDE0130
 
 /// <summary>
 ///     Represents a shape collection.
@@ -39,12 +40,7 @@ public interface ISlideShapes : IShapes
     /// <summary>
     ///     Adds a new Rectangle shape.
     /// </summary>
-    void AddRectangle(int x, int y, int width, int height);
-
-    /// <summary>
-    ///     Adds a new Rectangle: Rounded Corners. 
-    /// </summary>
-    void AddRoundedRectangle(int x, int y, int width, int height);
+    void AddShape(int x, int y, int width, int height, Geometry geometry = Geometry.Rectangle);
 
     /// <summary>
     ///     Adds a line from XML.

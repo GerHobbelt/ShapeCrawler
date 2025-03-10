@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
 using ShapeCrawler.Shared;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -11,7 +10,7 @@ internal sealed class GroupedShape : IShape
     private readonly P.Shape pShape;
     private readonly AutoShape decoratedShape;
 
-    internal GroupedShape(OpenXmlPart sdkTypedOpenXmlPart, P.Shape pShape, AutoShape decoratedShape)
+    internal GroupedShape(P.Shape pShape, AutoShape decoratedShape)
     {
         this.pShape = pShape;
         this.decoratedShape = decoratedShape;
@@ -119,15 +118,33 @@ internal sealed class GroupedShape : IShape
 
     public int Id => this.decoratedShape.Id;
 
-    public string Name => this.decoratedShape.Name;
-    
+    public string Name
+    {
+        get => this.decoratedShape.Name;
+        set => this.decoratedShape.Name = value;
+    }
+
+    public string AltText
+    {
+        get => this.decoratedShape.AltText;
+        set => this.decoratedShape.AltText = value;
+    }
+
     public bool Hidden => this.decoratedShape.Hidden;
     
     public bool IsPlaceholder => this.decoratedShape.IsPlaceholder;
     
     public PlaceholderType PlaceholderType => this.decoratedShape.PlaceholderType;
    
-    public Geometry GeometryType => this.decoratedShape.GeometryType;
+    public Geometry GeometryType {
+        get => this.decoratedShape.GeometryType;
+        set => this.decoratedShape.GeometryType = value;
+    }
+
+    public decimal CornerSize {
+        get => this.decoratedShape.CornerSize;
+        set => this.decoratedShape.CornerSize = value;
+    }
 
     public string? CustomData
     {

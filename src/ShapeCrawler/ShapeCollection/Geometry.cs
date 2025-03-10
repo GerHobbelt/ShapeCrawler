@@ -1,5 +1,6 @@
-﻿// ReSharper disable once CheckNamespace
+﻿#pragma warning disable IDE0130
 namespace ShapeCrawler;
+#pragma warning restore IDE0130
 
 /// <summary>
 ///     Geometry type.
@@ -134,22 +135,22 @@ public enum Geometry
     /// <summary>
     ///     Round Rectangle.
     /// </summary>
-    RoundRectangle,
+    RoundedRectangle,
 
     /// <summary>
     ///     Round1Rectangle.
     /// </summary>
-    Round1Rectangle,
+    SingleCornerRoundedRectangle,
 
     /// <summary>
     ///     Round2SameRectangle
     /// </summary>
-    Round2SameRectangle,
+    TopCornersRoundedRectangle,
 
     /// <summary>
     ///     Round2DiagonalRectangle
     /// </summary>
-    Round2DiagonalRectangle,
+    DiagonalCornersRoundedRectangle,
 
     /// <summary>
     ///     SnipRoundRectangle
