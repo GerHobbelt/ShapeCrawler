@@ -183,40 +183,121 @@ public class PictureTests : SCTest
 
     [Test]
     [SlideShape("059_crop-images.pptx", 1, "None", "0,0,0,0")]
-    [SlideShape("059_crop-images.pptx", 1, "Top 0.33", "0,0,0.33333,0")]
-    [SlideShape("059_crop-images.pptx", 1, "Left 0.5", "0.5005,0,0,0")]
-    [SlideShape("059_crop-images.pptx", 1, "Bottom 0.66", "0,0,-0.00001,0.66667")]
-    public void Crop_getter_gets_expected_values(IShape shape, string expectedFrameStr)
+    [SlideShape("059_crop-images.pptx", 1, "Top 0.33", "0,0,33.333,0")]
+    [SlideShape("059_crop-images.pptx", 1, "Left 0.5", "50.05,0,0,0")]
+    [SlideShape("059_crop-images.pptx", 1, "Bottom 0.66", "0,0,-0.001,66.667")]
+    public void Crop_Getter_returns_crop(IShape shape, string expectedCropStr)
     {
         // Arrange
-        var expected = CroppingFrame.Parse(expectedFrameStr);
+        var expectedCrop = CroppingFrame.Parse(expectedCropStr);
+        var picture = shape.As<IPicture>();
+
+        // Act-Assert
+        picture.Crop.Should().Be(expectedCrop);
+    }
+
+    [TestCase("0,0,0,0")]
+    [TestCase("30,0,0,0")]
+    [TestCase("0,40,0,0")]
+    [TestCase("0,0,50,0")]
+    [TestCase("0,0,0,70")]
+    [TestCase("10,20,30,50")]
+    public void Crop_Setter_sets_crop(string newCropStr)
+    {
+        // Arrange
+        var pres = new Presentation(StreamOf("059_crop-images.pptx"));
+        var newCrop = CroppingFrame.Parse(newCropStr);
+        var picture = pres.Slide(1).Picture("None");
 
         // Act
-        var actual = shape.As<IPicture>().Crop;
+        picture.Crop = newCrop;
+
+        // Assert
+        picture.Crop.Should().Be(newCrop);
+    }
+
+    [Test]
+    [SlideShape("059_crop-images.pptx", 1, "None", "Rectangle")]
+    [SlideShape("059_crop-images.pptx", 1, "RoundedRectangle", "RoundedRectangle")]
+    [SlideShape("059_crop-images.pptx", 1, "TopCornersRoundedRectangle", "TopCornersRoundedRectangle")]
+    [SlideShape("059_crop-images.pptx", 1, "Star5", "Star5")]
+    public void Picture_geometry_getter_gets_expected_values(IShape shape, string expectedStr)
+    {
+        // Arrange
+        var expected = (Geometry)Enum.Parse(typeof(Geometry),expectedStr);
+
+        // Act
+        var actual = shape.As<IPicture>().GeometryType;
 
         // Assert
         actual.Should().Be(expected);
     }
 
-    [TestCase("0,0,0,0")]
-    [TestCase("0.3,0,0,0")]
-    [TestCase("0,0.4,0,0")]
-    [TestCase("0,0,0.5,0")]
-    [TestCase("0,0,0,0.7")]
-    [TestCase("0.1,0.2,0.3,0.5")]
-    public void Crop_setter_sets_expected_values(string expectedFrameStr)
+    [Test]
+    [SlideShape("059_crop-images.pptx", 1, "None", "0")]
+    [SlideShape("059_crop-images.pptx", 1, "RoundedRectangle", "33.104")]
+    [SlideShape("059_crop-images.pptx", 1, "TopCornersRoundedRectangle", "32.87")]
+    [SlideShape("059_crop-images.pptx", 1, "Star5", "0")]
+    public void CornerSize_Getter_returns_corner_size_in_percentages(IShape shape, string expectedCornerSizeStr)
     {
         // Arrange
-        var expected = CroppingFrame.Parse(expectedFrameStr);
-        var pres = new Presentation(StreamOf("059_crop-images.pptx"));
-        var picture = pres.Slides[0].Shapes.GetByName<IPicture>("None");
+        var expectedCornerSize = decimal.Parse(expectedCornerSizeStr);
+        var picture = shape.As<IPicture>();
+
+        // Act-Assert
+        picture.CornerSize.Should().Be(expectedCornerSize);
+    }
+
+    [TestCase("RoundedRectangle")]
+    [TestCase("Triangle")]
+    [TestCase("Diamond")]
+    [TestCase("Parallelogram")]
+    [TestCase("Trapezoid")]
+    [TestCase("NonIsoscelesTrapezoid")]
+    [TestCase("DiagonalCornersRoundedRectangle")]
+    [TestCase("TopCornersRoundedRectangle")]
+    [TestCase("SingleCornerRoundedRectangle")]
+    [TestCase("UTurnArrow")]
+    [TestCase("LineInverse")]
+    [TestCase("RightTriangle")]
+    public void Picture_geometry_setter_sets_expected_values(string expectedStr)
+    {
+        // Arrange
+        var expected = (Geometry)Enum.Parse(typeof(Geometry),expectedStr);
+        var pres = new Presentation();
+        var shapes = pres.Slides[0].Shapes;
+        var image = TestHelper.GetStream("test-vector-image-1.svg");
+        image.Position = 0;
+        shapes.AddPicture(image);
+        var picture = shapes.Last().As<IPicture>();
 
         // Act
-        picture.Crop = expected;
+        picture.GeometryType = expected;
 
         // Assert
-        var actual = picture.Crop;
-        actual.Should().Be(expected);
+        picture.GeometryType.Should().Be(expected);
+        pres.Validate();
+    }
+
+    [TestCase("RoundedRectangle")]
+    [TestCase("TopCornersRoundedRectangle")]
+    public void CornerSize_Setter_sets_corner_size(string geometryName)
+    {
+        // Arrange
+        var pres = new Presentation();
+        var shapes = pres.Slides[0].Shapes;
+        var image = StreamOf("test-vector-image-1.svg");
+        shapes.AddPicture(image);
+        var picture = shapes.Last().As<IPicture>();
+        var geometry = (Geometry)Enum.Parse(typeof(Geometry),geometryName);
+        picture.GeometryType = geometry;
+
+        // Act
+        picture.CornerSize = 10m;
+
+        // Assert
+        picture.CornerSize.Should().Be(10m);
+        pres.Validate();
     }
 
     [Explicit]

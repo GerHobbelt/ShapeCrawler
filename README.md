@@ -51,14 +51,14 @@ var text = shape.TextBox!.Text;
 
 ### Create presentation
 
-```c#
+```C#
 // create a new presentation
 var pres = new Presentation();
 
 var shapes = pres.Slides[0].Shapes;
 
 // add new shape
-shapes.AddRectangle(x: 50, y: 60, width: 100, height: 70);
+shapes.AddShape(x: 50, y: 60, width: 100, height: 70);
 var addedShape = shapes.Last();
 
 addedShape.TextBox!.Text = "Hello World!";
@@ -95,9 +95,8 @@ Pull Requests are welcome! Please read the [Contribution Guide](https://github.c
 
 ## Changelog  
 
-### Version 0.57.0 - 2024-11-29
-🍀Added `IShape.AltText` [#13](https://github.com/ShapeCrawler/ShapeCrawler/issues/13)  
-🍀Added `ITable.AddColumn()` and `ITable.InsertColumnAfter()` [D-783](https://github.com/ShapeCrawler/ShapeCrawler/discussions/783)  
-🐞Fixed `Shape.Rotation` [#9](https://github.com/ShapeCrawler/ShapeCrawler/issues/9)  
-
-Visit [CHANGELOG.md](https://github.com/ShapeCrawler/ShapeCrawler/blob/master/CHANGELOG.md) to see the full log.
+### Version 0.59.0 - 2024-12-29
+🍀Added `ITable.TableStyleOptions` [#817](https://github.com/ShapeCrawler/ShapeCrawler/issues/655)  
+🍀Added exposing metadata `IPresentation.FileProperties.Title`, `IPresentation.FileProperties.Created` etc.  
+🐞Fixed updating the font color of the master shape [#793](https://github.com/ShapeCrawler/ShapeCrawler/issues/793)  
+🐞Fixed displaying constant maintainer'name for the created presentation [#812](https://github.com/ShapeCrawler/ShapeCrawler/issues/812)  
