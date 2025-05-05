@@ -59,7 +59,7 @@ public interface ISlide
     /// <summary>
     ///     Gets all slide text boxes.
     /// </summary>
-    public IList<ITextBox> GetAllTextBoxes();
+    public IList<ITextBox> GetTextBoxes();
 
     /// <summary>
     ///     Hides slide.
@@ -104,10 +104,21 @@ public interface ISlide
     ///     Removes the slide.
     /// </summary>
     void Remove();
+
+    /// <summary>
+    ///     Gets chart by name.
+    /// </summary>
+    IChart Chart(string name);
+    
+    /// <summary>
+    ///     Gets chart by ID.
+    /// </summary>
+    IChart Chart(int id);
 }
 
 internal sealed class Slide : ISlide
 {
+    private readonly SlidePart slidePart;
     private CustomXmlPart? customDataCustomXmlPart;
     private IShapeFill? fill;
 
@@ -116,15 +127,13 @@ internal sealed class Slide : ISlide
         ISlideLayout slideLayout,
         MediaCollection mediaCollection)
     {
-        this.SlidePart = slidePart;
+        this.slidePart = slidePart;
         this.customDataCustomXmlPart = this.GetCustomXmlPart();
         this.SlideLayout = slideLayout;
-        this.Shapes = new SlideShapeCollection(new ShapeCollection(slidePart), this.SlidePart, mediaCollection);
+        this.Shapes = new SlideShapeCollection(new ShapeCollection(slidePart), this.slidePart, mediaCollection);
     }
 
     public ISlideLayout SlideLayout { get; }
-
-    public SlidePart SlidePart { get; }
 
     public ISlideShapeCollection Shapes { get; }
 
@@ -140,7 +149,7 @@ internal sealed class Slide : ISlide
 
             var currentIndex = this.Number - 1;
             var newIndex = value - 1;
-            var presDocument = (PresentationDocument)this.SlidePart.OpenXmlPackage;
+            var presDocument = (PresentationDocument)this.slidePart.OpenXmlPackage;
             if (newIndex < 0 || newIndex >= presDocument.PresentationPart!.SlideParts.Count())
             {
                 throw new SCException("Slide number is out of range.");
@@ -194,8 +203,8 @@ internal sealed class Slide : ISlide
         {
             if (this.fill is null)
             {
-                var pcSld = this.SlidePart.Slide.CommonSlideData
-                            ?? this.SlidePart.Slide.AppendChild<DocumentFormat.OpenXml.Presentation.CommonSlideData>(
+                var pcSld = this.slidePart.Slide.CommonSlideData
+                            ?? this.slidePart.Slide.AppendChild<DocumentFormat.OpenXml.Presentation.CommonSlideData>(
                                 new());
 
                 // Background element needs to be first, else it gets ignored.
@@ -212,35 +221,35 @@ internal sealed class Slide : ISlide
         }
     }
 
-    public bool Hidden() => this.SlidePart.Slide.Show is not null && !this.SlidePart.Slide.Show.Value;
+    public bool Hidden() => this.slidePart.Slide.Show is not null && !this.slidePart.Slide.Show.Value;
 
     public void Hide()
     {
-        if (this.SlidePart.Slide.Show is null)
+        if (this.slidePart.Slide.Show is null)
         {
             var showAttribute = new OpenXmlAttribute("show", string.Empty, "0");
-            this.SlidePart.Slide.SetAttribute(showAttribute);
+            this.slidePart.Slide.SetAttribute(showAttribute);
         }
         else
         {
-            this.SlidePart.Slide.Show = false;
+            this.slidePart.Slide.Show = false;
         }
     }
 
-    public ITable Table(string name) => this.Shapes.GetByName<ITable>(name);
+    public ITable Table(string name) => this.Shapes.Shape<ITable>(name);
 
-    public IPicture Picture(string picture) => this.Shapes.GetByName<IPicture>(picture);
+    public IPicture Picture(string picture) => this.Shapes.Shape<IPicture>(picture);
 
-    public IShape Shape(string name) => this.Shapes.GetByName<IShape>(name);
+    public IShape Shape(string name) => this.Shapes.Shape<IShape>(name);
 
     public T Shape<T>(string name)
         where T : IShape
-        => this.Shapes.GetByName<T>(name);
+        => this.Shapes.Shape<T>(name);
 
     public void Remove()
     {
         // TODO: slide layout and master of removed slide also should be deleted if they are unused
-        var presDocument = (PresentationDocument)this.SlidePart.OpenXmlPackage;
+        var presDocument = (PresentationDocument)this.slidePart.OpenXmlPackage;
         var presPart = presDocument.PresentationPart!;
         var pPresentation = presDocument.PresentationPart!.Presentation;
         var slideIdList = pPresentation.SlideIdList!;
@@ -261,35 +270,28 @@ internal sealed class Slide : ISlide
         presPart.Presentation.Save();
     }
 
-    public IList<ITextBox> GetAllTextBoxes()
-    {
-        var returnList = new List<ITextBox>();
+    public IChart Chart(string name) => this.Shapes.Shape<IChart>(name);
 
+    public IChart Chart(int id) => this.Shapes.GetById<IChart>(id);
+
+    public IList<ITextBox> GetTextBoxes()
+    {
         var textBoxes = this.Shapes
             .Where(shape => shape.TextBox is not null)
             .Select(shape => shape.TextBox!)
             .ToList();
-        returnList.AddRange(textBoxes);
 
-        // if this slide contains a table, the cells from that table will have to be added as well, since they inherit from ITextBoxContainer but are not direct descendants of the slide
-        var tablesOnSlide = this.Shapes.OfType<ITable>().ToList();
-        if (tablesOnSlide.Any())
+        var tableTextboxes = this.Shapes.OfType<ITable>().SelectMany(table => table.Rows.SelectMany(row => row.Cells))
+            .Where(cell => cell.TextBox is not null).Select(cell => cell.TextBox);
+        textBoxes.AddRange(tableTextboxes);
+
+        var groupShapes = this.Shapes.OfType<Group>().ToList();
+        foreach (var groupShape in groupShapes)
         {
-            returnList.AddRange(tablesOnSlide.SelectMany(table =>
-                table.Rows.SelectMany(row => row.Cells).Select(cell => cell.TextBox)));
+            this.AddGroupTextBoxes(groupShape, textBoxes);
         }
 
-        // if there are groups on that slide, they need to be added as well since those are not direct descendants of the slide either
-        var groupsOnSlide = this.Shapes.OfType<IGroupShape>().ToList();
-        if (groupsOnSlide.Any())
-        {
-            foreach (var group in groupsOnSlide)
-            {
-                this.AddAllTextboxesInGroupToList(group, returnList);
-            }
-        }
-
-        return returnList;
+        return textBoxes;
     }
 
     /// <inheritdoc/>
@@ -311,33 +313,26 @@ internal sealed class Slide : ISlide
         }
     }
 
-    internal PresentationDocument SdkPresentationDocument() => (PresentationDocument)this.SlidePart.OpenXmlPackage;
+    internal PresentationDocument SdkPresentationDocument() => (PresentationDocument)this.slidePart.OpenXmlPackage;
 
-    private void AddAllTextboxesInGroupToList(IGroupShape group, List<ITextBox> textBoxes)
+    private void AddGroupTextBoxes(IGroup groupShape, List<ITextBox> textBoxes)
     {
-        foreach (var shape in group.Shapes)
+        foreach (var shape in groupShape.Shapes)
         {
-            switch (shape.ShapeContent)
+            if (shape is IGroup group)
             {
-                case ShapeContent.Group:
-                    this.AddAllTextboxesInGroupToList((IGroupShape)shape, textBoxes);
-                    break;
-                case ShapeContent.Shape:
-                    if (shape.TextBox is not null)
-                    {
-                        textBoxes.Add(shape.TextBox);
-                    }
-
-                    break;
-                default:
-                    throw new SCException("Unsupported shape content type.");
+                this.AddGroupTextBoxes(group, textBoxes);
+            }
+            else if(shape.TextBox is not null)
+            {
+                textBoxes.Add(shape.TextBox);
             }
         }
     }
 
     private ITextBox? GetNotes()
     {
-        var notes = this.SlidePart.NotesSlidePart;
+        var notes = this.slidePart.NotesSlidePart;
 
         if (notes is null)
         {
@@ -375,8 +370,8 @@ internal sealed class Slide : ISlide
         }
 
         // https://learn.microsoft.com/en-us/office/open-xml/presentation/working-with-notes-slides
-        var rid = new SCOpenXmlPart(this.SlidePart).GetNextRelationshipId();
-        var notesSlidePart1 = this.SlidePart.AddNewPart<NotesSlidePart>(rid);
+        var rid = new SCOpenXmlPart(this.slidePart).GetNextRelationshipId();
+        var notesSlidePart1 = this.slidePart.AddNewPart<NotesSlidePart>(rid);
         var notesSlide = new NotesSlide(
             new CommonSlideData(
                 new ShapeTree(
@@ -407,9 +402,9 @@ internal sealed class Slide : ISlide
 
     private int ParseNumber()
     {
-        var sdkPresentationDocument = (PresentationDocument)this.SlidePart.OpenXmlPackage;
+        var sdkPresentationDocument = (PresentationDocument)this.slidePart.OpenXmlPackage;
         var presentationPart = sdkPresentationDocument.PresentationPart!;
-        var currentSlidePartId = presentationPart.GetIdOfPart(this.SlidePart);
+        var currentSlidePartId = presentationPart.GetIdOfPart(this.slidePart);
         var slideIdList =
             presentationPart.Presentation.SlideIdList!.ChildElements.OfType<SlideId>().ToList();
         for (var i = 0; i < slideIdList.Count; i++)
@@ -441,7 +436,7 @@ internal sealed class Slide : ISlide
         Stream customXmlPartStream;
         if (this.customDataCustomXmlPart == null)
         {
-            var newSlideCustomXmlPart = this.SlidePart.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+            var newSlideCustomXmlPart = this.slidePart.AddCustomXmlPart(CustomXmlPartType.CustomXml);
             customXmlPartStream = newSlideCustomXmlPart.GetStream();
             this.customDataCustomXmlPart = newSlideCustomXmlPart;
         }
@@ -456,7 +451,7 @@ internal sealed class Slide : ISlide
 
     private CustomXmlPart? GetCustomXmlPart()
     {
-        foreach (var customXmlPart in this.SlidePart.CustomXmlParts)
+        foreach (var customXmlPart in this.slidePart.CustomXmlParts)
         {
             using var customXmlPartStream = new StreamReader(customXmlPart.GetStream());
             var customXmlPartText = customXmlPartStream.ReadToEnd();
