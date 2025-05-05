@@ -182,22 +182,22 @@ public class PresentationTests : SCTest
         var destPre = new Presentation(TestAsset("002.pptx"));
 
         // Act
-        destPre.Slides.Insert(2, sourceSlide);
+        destPre.Slides.Add( sourceSlide, 2);
 
         // Assert
         destPre.Slides[1].CustomData.Should().Be(sourceSlideId);
     }
 
     [Test]
-    [Explicit("Should be fixed")]
-    public void Slides_Insert_should_not_break_hyperlink()
+    [Explicit("Should be fixed with https://github.com/ShapeCrawler/ShapeCrawler/issues/864")]
+    public void Slides_Add_should_not_break_hyperlink()
     {
         // Arrange
         var pres = new Presentation(TestAsset("autoshape-case018_rotation.pptx"));
         var inserting = pres.Slide(1);
 
         // Act
-        pres.Slides.Insert(2, inserting);
+        pres.Slides.Add(inserting, 2);
 
         // Assert
         pres.Validate();
@@ -327,7 +327,7 @@ public class PresentationTests : SCTest
         var pptx = TestAsset("autoshape-case003.pptx");
         var pres = new Presentation(pptx);
         var textBox = pres.Slides[0].Shapes.GetByName<IShape>("AutoShape 2").TextBox!;
-        textBox.Text = "Test";
+        textBox.SetText("Test");
 
         // Act
         pres.Save();
@@ -450,7 +450,7 @@ public class PresentationTests : SCTest
         var destPre = new Presentation(pptx);
 
         // Act
-        destPre.Slides.Insert(2, sourceSlide);
+        destPre.Slides.Add(sourceSlide, 2);
 
         // Assert
         destPre.Slides[1].CustomData.Should().Be(sourceSlideId);
@@ -522,7 +522,6 @@ public class PresentationTests : SCTest
     }
 
     [Test]
-    [Explicit("Should be fixed")]
     public void Constructor_does_not_throw_exception_When_the_specified_file_is_a_google_slide_export()
     {
         // Act
@@ -539,7 +538,10 @@ public class PresentationTests : SCTest
         var pres = new Presentation(TestAsset("076 bitcoin.pptx"));
         var expectedMarkdown = StringOf("076 bitcoin.md");
 
-        // Act & Assert
-        pres.AsMarkdown().Should().Be(expectedMarkdown);
+        // Act
+        var actualMarkdown = pres.AsMarkdown();
+        
+        // Assert
+        actualMarkdown.Should().BeEquivalentTo(expectedMarkdown);
     }
 }

@@ -11,6 +11,7 @@ dotnet_diagnostic.IDE0017.severity = none
 # Roslyn - Code quality
 dotnet_diagnostic.CS0108.severity = error
 dotnet_diagnostic.CS0114.severity = error
+dotnet_diagnostic.CS0414.severity = error
 dotnet_diagnostic.CS0618.severity = error
 dotnet_diagnostic.CA1062.severity = none
 dotnet_diagnostic.CA1051.severity = error
@@ -31,13 +32,14 @@ dotnet_diagnostic.CS8625.severity = error
 # Stylecop
 dotnet_diagnostic.SA1000.severity = none
 dotnet_diagnostic.SA1005.severity = error
-dotnet_diagnostic.SA1009.severity = error
+dotnet_diagnostic.SA1009.severity = none
 dotnet_diagnostic.SA1025.severity = error
 dotnet_diagnostic.SA1028.severity = none
 dotnet_diagnostic.SA1116.severity = error
 dotnet_diagnostic.SA1117.severity = error
 dotnet_diagnostic.SA1122.severity = error
 dotnet_diagnostic.SA1124.severity = none
+dotnet_diagnostic.SA1128.severity = error
 dotnet_diagnostic.SA1200.severity = none
 dotnet_diagnostic.SA1210.severity = error
 dotnet_diagnostic.SA1214.severity = error

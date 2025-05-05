@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -11,7 +12,6 @@ using ShapeCrawler.Assets;
 using ShapeCrawler.Presentations;
 using ShapeCrawler.Slides;
 using A = DocumentFormat.OpenXml.Drawing;
-
 
 #if NETSTANDARD2_0
 using ShapeCrawler.Extensions;
@@ -31,53 +31,27 @@ public sealed class Presentation : IPresentation
     ///    Opens presentation from the specified stream.
     /// </summary>
     public Presentation(Stream stream)
+        : this(PresentationDocument.Open(stream, true))
     {
-        this.presDocument = PresentationDocument.Open(stream, true);
-        this.slideSize = new SlideSize(this.presDocument.PresentationPart!.Presentation.SlideSize!);
-        this.SlideMasters = new SlideMasterCollection(this.presDocument.PresentationPart!.SlideMasterParts);
-        this.Sections = new SectionCollection(this.presDocument);
-        this.Slides = new UpdatableSlideCollection(this.presDocument.PresentationPart);
-        this.Footer = new Footer(new UpdatableSlideCollection(this.presDocument.PresentationPart));
-        this.Properties =
-            new PresentationProperties(this.presDocument.CoreFilePropertiesPart!.OpenXmlPackage.PackageProperties);
     }
 
     /// <summary>
     ///    Opens presentation from the specified file.
     /// </summary>
     public Presentation(string file)
+        : this(PresentationDocument.Open(file, true))
     {
-        this.presDocument = PresentationDocument.Open(file, true);
-        this.slideSize = new SlideSize(this.presDocument.PresentationPart!.Presentation.SlideSize!);
-        this.SlideMasters = new SlideMasterCollection(this.presDocument.PresentationPart!.SlideMasterParts);
-        this.Sections = new SectionCollection(this.presDocument);
-        this.Slides = new UpdatableSlideCollection(this.presDocument.PresentationPart);
-        this.Footer = new Footer(new UpdatableSlideCollection(this.presDocument.PresentationPart));
-        this.Properties =
-            new PresentationProperties(this.presDocument.CoreFilePropertiesPart!.OpenXmlPackage.PackageProperties);
     }
 
     /// <summary>
     ///     Creates a new presentation.
     /// </summary>
     public Presentation()
+        : this(new AssetCollection(Assembly.GetExecutingAssembly()).StreamOf("new presentation.pptx"))
     {
-        var assets = new AssetCollection(Assembly.GetExecutingAssembly());
-        var stream = assets.StreamOf("new presentation.pptx");
-
-        this.presDocument = PresentationDocument.Open(stream, true);
-        this.slideSize = new SlideSize(this.presDocument.PresentationPart!.Presentation.SlideSize!);
-        this.SlideMasters = new SlideMasterCollection(this.presDocument.PresentationPart!.SlideMasterParts);
-        this.Sections = new SectionCollection(this.presDocument);
-        this.Slides = new UpdatableSlideCollection(this.presDocument.PresentationPart);
-        this.Footer = new Footer(new UpdatableSlideCollection(this.presDocument.PresentationPart));
-        this.Properties =
-            new PresentationProperties(this.presDocument.CoreFilePropertiesPart!.OpenXmlPackage.PackageProperties)
-            {
-                Modified = SCSettings.TimeProvider.UtcNow
-            };
+        this.Properties.Modified = SCSettings.TimeProvider.UtcNow;
     }
-
+    
     internal Presentation(PresentationDocument presDocument)
     {
         this.presDocument = presDocument;
@@ -87,7 +61,9 @@ public sealed class Presentation : IPresentation
         this.Slides = new UpdatableSlideCollection(this.presDocument.PresentationPart);
         this.Footer = new Footer(new UpdatableSlideCollection(this.presDocument.PresentationPart));
         this.Properties =
-            new PresentationProperties(this.presDocument.CoreFilePropertiesPart!.OpenXmlPackage.PackageProperties);
+            this.presDocument.CoreFilePropertiesPart != null
+                ? new PresentationProperties(this.presDocument.CoreFilePropertiesPart.OpenXmlPackage.PackageProperties)
+                : new PresentationProperties(new DefaultPackageProperties());
     }
 
     /// <inheritdoc />
@@ -203,24 +179,35 @@ public sealed class Presentation : IPresentation
             "The 'mod' attribute is not declared.",
             "The element has unexpected child element 'http://schemas.openxmlformats.org/drawingml/2006/main:noFill'."
         };
-        var sdkErrors = new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(this.presDocument);
-        sdkErrors = sdkErrors.Where(errorInfo => !nonCriticalErrors.Contains(errorInfo.Description));
-        sdkErrors = [.. sdkErrors.DistinctBy(errorInfo => new { errorInfo.Description, errorInfo.Path?.XPath })];
-
-        if (sdkErrors.Any())
+        var sdkValidationErrorInfoCollection = new OpenXmlValidator(FileFormatVersions.Microsoft365).Validate(this.presDocument);
+        sdkValidationErrorInfoCollection = sdkValidationErrorInfoCollection.Where(errorInfo => !nonCriticalErrors.Contains(errorInfo.Description));
+        sdkValidationErrorInfoCollection = [.. sdkValidationErrorInfoCollection.DistinctBy(errorInfo => new { errorInfo.Description, errorInfo.Path?.XPath })];
+        var sdkErrors = new List<string>();
+        foreach (var validationErrorInfo in sdkValidationErrorInfoCollection)
         {
-            throw new SCException("Presentation is invalid.");
+            var xmlError = new XElement("error");
+            xmlError.Add(new XElement("id", validationErrorInfo.Id));
+            xmlError.Add(new XElement("description", validationErrorInfo.Description));
+            xmlError.Add(new XElement("xpath", validationErrorInfo.Path?.XPath));
+            sdkErrors.Add(xmlError.ToString());
         }
-
-        var errors = ValidateATableRows(this.presDocument);
-        errors = errors.Concat(ValidateASolidFill(this.presDocument));
-        if (errors.Any())
+            
+        var customErrors = ATableRowErrors(this.presDocument)
+            .Concat(ASolidFillErrors(this.presDocument))
+            .Concat(sdkErrors);
+        if (customErrors.Any())
         {
-            throw new SCException("Presentation is invalid.");
+            var errorMessages = new StringBuilder();
+            foreach (var error in customErrors)
+            {
+                errorMessages.AppendLine(error);
+            }
+            
+            throw new SCException(errorMessages.ToString());
         }
     }
 
-    private static IEnumerable<string> ValidateATableRows(PresentationDocument presDocument)
+    private static IEnumerable<string> ATableRowErrors(PresentationDocument presDocument)
     {
         var aTableRows = presDocument.PresentationPart!.SlideParts
             .SelectMany(slidePart => slidePart.Slide.Descendants<A.TableRow>());
@@ -239,13 +226,16 @@ public sealed class Presentation : IPresentation
             for (int i = 0; i < aTableRow.ChildElements.Count; i++)
             {
                 var element = aTableRow.ChildElements[i];
-                if (element is A.TableCell)
+                switch (element)
                 {
-                    lastTableCellIndex = i;
-                }
-                else if (element is A.ExtensionList)
-                {
-                    extListIndex = i;
+                    case A.TableCell:
+                        lastTableCellIndex = i;
+                        break;
+                    case A.ExtensionList:
+                        extListIndex = i;
+                        break;
+                    default:
+                        throw new SCException("An error occurred while validating the table row structure.");
                 }
             }
 
@@ -257,7 +247,7 @@ public sealed class Presentation : IPresentation
         }
     }
 
-    private static IEnumerable<string> ValidateASolidFill(PresentationDocument presDocument)
+    private static IEnumerable<string> ASolidFillErrors(PresentationDocument presDocument)
     {
         var aText = presDocument.PresentationPart!.SlideParts
             .SelectMany(slidePart => slidePart.Slide.Descendants<A.Text>());

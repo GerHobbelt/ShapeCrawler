@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
+using ShapeCrawler.Shapes;
 
 #pragma warning disable IDE0130
 namespace ShapeCrawler;
@@ -77,4 +78,21 @@ public interface ISlideShapeCollection : IShapeCollection
     ///     Adds Pie Chart.
     /// </summary>
     void AddPieChart(int x, int y, int width, int height, Dictionary<string, double> categoryValues, string seriesName);
+    
+    
+    /// <summary>
+    ///     Adds Bar Chart with specified parameters.
+    /// </summary>
+    void AddBarChart(int x, int y, int width, int height, Dictionary<string, double> categoryValues, string seriesName);
+    
+    /// <summary>
+    ///     Adds a SmartArt graphic to the slide.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the SmartArt graphic.</param>
+    /// <param name="y">The y-coordinate of the SmartArt graphic.</param>
+    /// <param name="width">The width of the SmartArt graphic.</param>
+    /// <param name="height">The height of the SmartArt graphic.</param>
+    /// <param name="smartArtType">The type of SmartArt graphic to add.</param>
+    /// <returns>The added SmartArt graphic.</returns>
+    ISmartArt AddSmartArt(int x, int y, int width, int height, SmartArtType smartArtType);
 }
