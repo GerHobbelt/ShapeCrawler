@@ -1,6 +1,6 @@
 <h3 align="center">
 
-![ShapeCrawler](./docs/logo-extend.png)
+![ShapeCrawler](./assets/logo.png)
 
 </h3>
 
@@ -35,7 +35,7 @@ ShapeCrawler is a .NET library for manipulating PowerPoint presentations. It pro
 
 ```c#
 // open existing presentation
-var pres = new Presentation("some.pptx");
+using var pres = new Presentation("pres.pptx");
 
 var shapes = pres.Slide(1).Shapes;
 
@@ -68,7 +68,7 @@ pres.Save("my pres.pptx");
 
 ### Update picture
 ```C#
-var pres = new Presentation("picture.pptx");
+using var pres = new Presentation("pres.pptx");
 
 // get picture shape
 var picture = pres.Slide(1).Picture("Picture 1");
@@ -109,8 +109,7 @@ Pull Requests are welcome! Please read the [Contribution Guide](https://github.c
 
 ## Changelog  
 
-### Version 0.64.1 - 2025-02-15
-🐞Fixed updating table cell margins [#916](https://github.com/ShapeCrawler/ShapeCrawler/issues/916)  
-🐞Fixed font size [#905](https://github.com/ShapeCrawler/ShapeCrawler/issues/905) 
+### Version 0.64.2 - 2025-03-12
+🐞Fixed saving presentation in file stream [#953](https://github.com/ShapeCrawler/ShapeCrawler/issues/953)
 
 Visit [CHANGELO.md](https://github.com/ShapeCrawler/ShapeCrawler/blob/master/CHANGELOG.md) to see the full change history.

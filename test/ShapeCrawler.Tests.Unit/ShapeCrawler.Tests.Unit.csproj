@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ShapeCrawler\ShapeCrawler.csproj" />
+    <ProjectReference Include="..\..\src\ShapeCrawler.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -257,6 +257,8 @@
     <EmbeddedResource Include="Assets\images\05 ico image.ico" />
     <None Remove="Assets\072 content placeholder.pptx" />
     <EmbeddedResource Include="Assets\072 content placeholder.pptx" />
+    <None Remove="Assets\073 replacing text.pptx" />
+    <EmbeddedResource Include="Assets\073 replacing text.pptx" />
   </ItemGroup>
 
 </Project>

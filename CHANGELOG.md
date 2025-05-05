@@ -1,5 +1,12 @@
 # Changelog  
 
+## Version 0.64.3 - Unreleased
+🐞Fixed updating table height [#552](https://github.com/ShapeCrawler/ShapeCrawler/issues/552)  
+🐞Fixed New Line issue [#960](https://github.com/ShapeCrawler/ShapeCrawler/issues/960)
+
+## Version 0.64.2 - 2025-03-12
+🐞Fixed saving presentation in file stream [#953](https://github.com/ShapeCrawler/ShapeCrawler/issues/953)
+
 ## Version 0.64.1 - 2025-02-15
 🐞Fixed updating table cell margins [#916](https://github.com/ShapeCrawler/ShapeCrawler/issues/916)  
 🐞Fixed font size [#905](https://github.com/ShapeCrawler/ShapeCrawler/issues/905)  
